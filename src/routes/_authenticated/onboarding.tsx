@@ -51,10 +51,10 @@ function Onboarding() {
   const [consent, setConsent] = useState(false);
   const [template, setTemplate] = useState("job_seeker");
   const [displayName, setDisplayName] = useState("");
-  const [urgentLabel, setUrgentLabel] = useState(ROLE_TEMPLATES[0].urgentLabel);
-  const [longtermLabel, setLongtermLabel] = useState(ROLE_TEMPLATES[0].longtermLabel);
-  const [urgentShare, setUrgentShare] = useState(ROLE_TEMPLATES[0].urgentShare);
-  const [valueLabel, setValueLabel] = useState(ROLE_TEMPLATES[0].valueLabel);
+  const [urgentLabel, setUrgentLabel] = useState(ROLE_TEMPLATES[0]!.urgentLabel);
+  const [longtermLabel, setLongtermLabel] = useState(ROLE_TEMPLATES[0]!.longtermLabel);
+  const [urgentShare, setUrgentShare] = useState(ROLE_TEMPLATES[0]!.urgentShare);
+  const [valueLabel, setValueLabel] = useState(ROLE_TEMPLATES[0]!.valueLabel);
   const [priorityNotes, setPriorityNotes] = useState("");
   const [tone, setTone] = useState("direct");
   const [language, setLanguage] = useState("English");
@@ -237,7 +237,7 @@ function Onboarding() {
                 min={0}
                 max={100}
                 step={5}
-                onValueChange={(v) => setUrgentShare(v[0])}
+                onValueChange={(v) => setUrgentShare(v[0] ?? 0)}
               />
             </div>
             <div className="space-y-2">
@@ -374,7 +374,7 @@ function Onboarding() {
                       step={1}
                       onValueChange={(v) =>
                         setProjects((prev) =>
-                          prev.map((x, j) => (j === i ? { ...x, value: v[0] } : x)),
+                          prev.map((x, j) => (j === i ? { ...x, value: v[0] ?? 3 } : x)),
                         )
                       }
                     />

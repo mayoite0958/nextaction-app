@@ -296,7 +296,7 @@ function SettingsPage() {
             min={0}
             max={100}
             step={5}
-            onValueChange={(v) => set("urgent_share", v[0])}
+            onValueChange={(v) => set("urgent_share", v[0] ?? 0)}
           />
         </div>
         <div className="space-y-2">

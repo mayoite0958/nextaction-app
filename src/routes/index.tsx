@@ -27,7 +27,7 @@ function Landing() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(({ data }: { data: { session: unknown } }) => {
       if (data.session) navigate({ to: "/today", replace: true });
     });
   }, [navigate]);

@@ -27,7 +27,7 @@ function AuthPage() {
   const [sent, setSent] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(({ data }: { data: { session: unknown } }) => {
       if (data.session) navigate({ to: "/today", replace: true });
     });
   }, [navigate]);

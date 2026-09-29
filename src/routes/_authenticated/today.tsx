@@ -97,7 +97,7 @@ function Today() {
         </p>
       ) : (
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          {projects.map((p) => {
+          {projects.map((p: Record<string, any>) => {
             const left = daysLeft(p.deadline);
             const urgentBucket = p.bucket !== "long_term";
             return (
