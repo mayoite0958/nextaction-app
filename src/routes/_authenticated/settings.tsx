@@ -42,7 +42,7 @@ export const Route = createFileRoute("/_authenticated/settings")({
       },
     ],
   }),
-  component: SettingsPage;
+  component: SettingsPage,
 });
 
 type Form = {
