@@ -6,6 +6,9 @@ import { SplitBar } from "@/components/SplitBar";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { daysLeft, relativeTime } from "@/lib/nextaction";
+import type { Database } from "@/integrations/supabase/types";
+
+type ProjectRow = Database["public"]["Tables"]["projects"]["Row"];
 
 export const Route = createFileRoute("/_authenticated/today")({
   head: () => ({
@@ -97,7 +100,7 @@ function Today() {
         </p>
       ) : (
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          {projects.map((p: Record<string, any>) => {
+          {projects.map((p: ProjectRow) => {
             const left = daysLeft(p.deadline);
             const urgentBucket = p.bucket !== "long_term";
             return (
