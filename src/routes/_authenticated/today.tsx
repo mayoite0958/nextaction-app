@@ -1,11 +1,13 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { SplitBar } from "@/components/SplitBar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { daysLeft, relativeTime } from "@/lib/nextaction";
+import { sendToN8n, type N8nEvent } from "@/lib/n8n";
 import type { Database } from "@/integrations/supabase/types";
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"];
@@ -54,6 +56,29 @@ function Today() {
   });
 
   const settings = settingsQuery.data;
+  const [reply, setReply] = useState<string | null>(null);
+  const [asking, setAsking] = useState(false);
+  const [askError, setAskError] = useState<string | null>(null);
+  const sentOnOpen = useRef(false);
+
+  async function ask(event: N8nEvent) {
+    setAsking(true);
+    setAskError(null);
+    try {
+      setReply(await sendToN8n(event));
+    } catch (e) {
+      setAskError(e instanceof Error ? e.message : "Could not reach n8n");
+    } finally {
+      setAsking(false);
+    }
+  }
+
+  useEffect(() => {
+    if (settings && !sentOnOpen.current) {
+      sentOnOpen.current = true;
+      void ask("today_opened");
+    }
+  }, [settings]);
 
   useEffect(() => {
     if (settingsQuery.isSuccess && !settings) navigate({ to: "/onboarding", replace: true });
@@ -87,6 +112,26 @@ function Today() {
           longtermLabel={longtermLabel}
         />
       </div>
+
+      <section className="panel mt-6 p-5">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="font-display text-sm font-semibold uppercase tracking-widest text-primary">
+            Your next action
+          </h2>
+          <Button size="sm" onClick={() => ask("next_action_requested")} disabled={asking}>
+            {asking ? "Thinking…" : "Get my next action"}
+          </Button>
+        </div>
+        {askError ? (
+          <p className="mt-3 text-sm text-destructive">{askError}</p>
+        ) : reply ? (
+          <p className="mt-3 whitespace-pre-wrap text-sm">{reply}</p>
+        ) : (
+          <p className="mt-3 text-sm text-muted-foreground">
+            {asking ? "Asking for a recommendation…" : "No recommendation yet."}
+          </p>
+        )}
+      </section>
 
       <h2 className="mt-10 text-sm font-semibold uppercase tracking-widest text-muted-foreground">
         Active projects
