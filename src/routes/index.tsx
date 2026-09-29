@@ -49,7 +49,7 @@ function Landing() {
           <Link to="/auth">Get started</Link>
         </Button>
         <Button asChild size="lg" variant="secondary">
-          <Link to="/auth" search={{}}>
+          <Link to="/auth">
             I already have an account
           </Link>
         </Button>
