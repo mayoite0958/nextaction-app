@@ -15,11 +15,17 @@ export async function callN8nWebhook(
     headers?: Record<string, string>;
   } = {},
 ): Promise<Response> {
-  const { data, error } = await supabase.auth.getSession();
-  const token = data.session?.access_token;
+  const { data: userData, error: userError } = await supabase.auth.getUser();
 
-  if (error || !token) {
-    throw new Error("No active session — cannot call n8n webhook");
+  if (userError || !userData.user) {
+    throw new Error("You are signed out. Sign in before requesting a next action.");
+  }
+
+  const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+  const token = sessionData.session?.access_token;
+
+  if (sessionError || !token) {
+    throw new Error("Your session has expired. Sign in again before requesting a next action.");
   }
 
   const { method = "POST", body, headers = {} } = options;
@@ -27,9 +33,9 @@ export async function callN8nWebhook(
   return fetch(url, {
     method,
     headers: {
-      Authorization: `Bearer ${token}`,
       ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
       ...headers,
+      Authorization: `Bearer ${token}`,
     },
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   });
