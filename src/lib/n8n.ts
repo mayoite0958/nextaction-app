@@ -124,11 +124,11 @@ export async function requestRecommendation(input: {
 
   const str = (v: unknown) => (typeof v === "string" && v.trim() ? v : null);
   return {
-    project_id: str(output.project_id),
-    project_name: str(output.project_name),
-    next_action: str(output.next_action),
-    done_looks_like: str(output.done_looks_like),
-    why: str(output.why),
-    clarifying_question: str(output.clarifying_question),
+    project_id: str(output["project_id"]),
+    project_name: str(output["project_name"]),
+    next_action: str(output["next_action"]),
+    done_looks_like: str(output["done_looks_like"]),
+    why: str(output["why"]),
+    clarifying_question: str(output["clarifying_question"]),
   };
 }
