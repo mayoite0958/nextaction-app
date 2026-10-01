@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { daysLeft, relativeTime } from "@/lib/nextaction";
+import { bucketLabel, daysLeft, relativeTime } from "@/lib/nextaction";
 import { requestRecommendation, type Energy, type Recommendation } from "@/lib/n8n";
 import type { Database } from "@/integrations/supabase/types";
 
