@@ -72,6 +72,7 @@ export const N8N_PLAN_PROJECT_URL =
 export type ProjectPlan = {
   done_definition: string | null;
   milestones: { title: string; weight: number; done: boolean }[];
+  first_tasks: { title: string; est_minutes: number | null; energy: string | null }[];
 };
 
 /** Ask n8n to draft a plan for a finish-line project. */
@@ -90,6 +91,19 @@ export async function planProject(body: { name: string; goal: string }): Promise
         return { title: String(r["title"] ?? ""), weight: Number.isFinite(w) ? w : 0, done: r["done"] === true };
       })
       .filter((m) => m.title),
+    first_tasks: (Array.isArray(o["first_tasks"]) ? (o["first_tasks"] as unknown[]) : [])
+      .map((t) => {
+        if (typeof t === "string") return { title: t.trim(), est_minutes: null, energy: null };
+        const r = (t ?? {}) as Record<string, unknown>;
+        const em = Number(r["est_minutes"]);
+        const en = typeof r["energy"] === "string" ? r["energy"].trim() : "";
+        return {
+          title: String(r["title"] ?? "").trim(),
+          est_minutes: Number.isFinite(em) && em > 0 ? Math.round(em) : null,
+          energy: en || null,
+        };
+      })
+      .filter((t) => t.title),
   };
 }
 
