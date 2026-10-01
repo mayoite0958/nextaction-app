@@ -48,6 +48,9 @@ export function SessionPanel({
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [plusCount, setPlusCount] = useState(0);
   const [result, setResult] = useState<SessionEndOutput | null>(null);
+  const [notesKept, setNotesKept] = useState<boolean[]>([]);
+  const [tasksKept, setTasksKept] = useState<boolean[]>([]);
+  const [markTaskDone, setMarkTaskDone] = useState(false);
   const [busy, setBusy] = useState(false);
   const [startedAt, setStartedAt] = useState<string | null>(null);
   const [taskId, setTaskId] = useState<string | null>(recommendation.task_id);
@@ -136,13 +139,22 @@ export function SessionPanel({
       proj = res.data;
     }
     setProject(proj);
+    const { data: eventRows } = await supabase
+      .from("session_events")
+      .select("type,text,ts")
+      .eq("session_id", sessionId)
+      .order("ts", { ascending: true });
+    const events = (eventRows ?? []).map((e) => ({ type: e.type, text: e.text, time: e.ts }));
     let out: SessionEndOutput | null = null;
     try {
-      out = await reportSessionEnd({ project: proj, action, outcome, where_stopped: stopped });
+      out = await reportSessionEnd({ project: proj, action, outcome, where_stopped: stopped, events });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not reach n8n");
     }
     setResult(out);
+    setNotesKept((out?.notes ?? []).map(() => true));
+    setTasksKept((out?.new_tasks ?? []).map(() => true));
+    setMarkTaskDone(out?.task_done === true);
     const suggested = new Set((out?.milestone_suggestions ?? []).map((t) => t.trim().toLowerCase()));
     setMilestones(
       parseMilestones(proj?.milestones).map((m) => ({
