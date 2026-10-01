@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { daysLeft, relativeTime } from "@/lib/nextaction";
+import { bucketLabel, daysLeft, relativeTime, slugifyBucket } from "@/lib/nextaction";
 
 export const Route = createFileRoute("/_authenticated/projects/$id")({
   head: () => ({
@@ -65,6 +65,8 @@ function ProjectPage() {
   const [form, setForm] = useState<Form>(EMPTY);
   const [update, setUpdate] = useState("");
   const [saving, setSaving] = useState(false);
+  const [addingCategory, setAddingCategory] = useState(false);
+  const [newCategory, setNewCategory] = useState("");
 
   const settingsQuery = useQuery({
     queryKey: ["user_settings"],
