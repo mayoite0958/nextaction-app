@@ -336,7 +336,7 @@ function SettingsPage() {
                     min={0}
                     max={100}
                     className="w-24"
-                    value={targets[name] ?? 0}
+                    value={targets?.[name] ?? 0}
                     onChange={(e) =>
                       setTargets((t) => ({
                         ...t,

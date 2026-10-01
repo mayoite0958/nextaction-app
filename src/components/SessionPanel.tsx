@@ -49,7 +49,7 @@ export function SessionPanel({
       .select("id")
       .single();
     setBusy(false);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     setSessionId(data.id);
     setStage("working");
   }
@@ -69,7 +69,7 @@ export function SessionPanel({
       .eq("id", sessionId);
     if (error) {
       setBusy(false);
-      return toast.error(error.message);
+      { toast.error(error.message); return; }
     }
     try {
       const pct = await reportSessionEnd({
@@ -106,7 +106,7 @@ export function SessionPanel({
       })
       .eq("id", recommendation.project_id);
     setBusy(false);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     toast.success("Progress saved.");
     await qc.invalidateQueries({ queryKey: ["projects"] });
     setStage("idle");
