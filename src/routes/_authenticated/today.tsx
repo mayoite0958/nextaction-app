@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { daysLeft, relativeTime } from "@/lib/nextaction";
+import { bucketLabel, daysLeft, relativeTime } from "@/lib/nextaction";
 import { requestRecommendation, type Energy, type Recommendation } from "@/lib/n8n";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -108,8 +108,8 @@ function Today() {
     );
   }
 
-  const urgentLabel = settings.bucket_urgent_label ?? "Urgent";
-  const longtermLabel = settings.bucket_longterm_label ?? "Long-term";
+  const urgentLabel = bucketLabel(settings, "urgent");
+  const longtermLabel = bucketLabel(settings, "long_term");
   const projects = projectsQuery.data ?? [];
 
   return (
@@ -228,7 +228,13 @@ function Today() {
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           {projects.map((p: ProjectRow) => {
             const left = daysLeft(p.deadline);
-            const urgentBucket = p.bucket !== "long_term";
+            const bucket = p.bucket ?? "long_term";
+            const badgeClass =
+              bucket === "urgent"
+                ? "bg-urgent text-urgent-foreground"
+                : bucket === "long_term"
+                  ? "bg-longterm text-longterm-foreground"
+                  : "bg-muted text-foreground";
             return (
               <Link
                 key={p.id}
@@ -238,15 +244,7 @@ function Today() {
               >
                 <div className="flex items-start justify-between gap-3">
                   <h3 className="font-display text-lg font-semibold leading-tight">{p.name}</h3>
-                  <Badge
-                    className={
-                      urgentBucket
-                        ? "bg-urgent text-urgent-foreground"
-                        : "bg-longterm text-longterm-foreground"
-                    }
-                  >
-                    {urgentBucket ? urgentLabel : longtermLabel}
-                  </Badge>
+                  <Badge className={badgeClass}>{bucketLabel(settings, bucket)}</Badge>
                 </div>
 
                 {p.goal && <p className="text-sm text-muted-foreground">{p.goal}</p>}

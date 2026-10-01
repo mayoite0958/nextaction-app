@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { daysLeft, relativeTime } from "@/lib/nextaction";
+import { bucketLabel, daysLeft, relativeTime, slugifyBucket } from "@/lib/nextaction";
 
 export const Route = createFileRoute("/_authenticated/projects/$id")({
   head: () => ({
@@ -65,6 +65,8 @@ function ProjectPage() {
   const [form, setForm] = useState<Form>(EMPTY);
   const [update, setUpdate] = useState("");
   const [saving, setSaving] = useState(false);
+  const [addingCategory, setAddingCategory] = useState(false);
+  const [newCategory, setNewCategory] = useState("");
 
   const settingsQuery = useQuery({
     queryKey: ["user_settings"],
@@ -82,6 +84,15 @@ function ProjectPage() {
       const { data, error } = await supabase.from("projects").select("*").eq("id", id).maybeSingle();
       if (error) throw error;
       return data;
+    },
+  });
+
+  const bucketsQuery = useQuery({
+    queryKey: ["project_buckets"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("projects").select("bucket");
+      if (error) throw error;
+      return [...new Set((data ?? []).map((r) => r.bucket).filter((b): b is string => !!b))];
     },
   });
 
@@ -118,15 +129,19 @@ function ProjectPage() {
   }, [p]);
 
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setForm((f) => ({ ...f, [k]: v }));
-  const urgentLabel = settingsQuery.data?.bucket_urgent_label ?? "Urgent";
-  const longtermLabel = settingsQuery.data?.bucket_longterm_label ?? "Long-term";
+  const settings = settingsQuery.data;
+  const knownBuckets = bucketsQuery.data ?? [];
+  const customBuckets = knownBuckets.filter((b) => b !== "urgent" && b !== "long_term");
+  const effectiveBucket = addingCategory
+    ? slugifyBucket(newCategory) || "long_term"
+    : form.bucket;
 
   const payload = () => ({
     name: form.name.trim(),
     goal: form.goal || null,
     deadline: form.deadline || null,
     status: form.status,
-    bucket: form.bucket,
+    bucket: effectiveBucket,
     value_score: form.value_score,
     progress_summary: form.progress_summary || null,
     blocker: form.blocker || null,
@@ -145,6 +160,7 @@ function ProjectPage() {
     toast.success("Project saved.");
     await qc.invalidateQueries({ queryKey: ["projects"] });
     await qc.invalidateQueries({ queryKey: ["project", id] });
+    await qc.invalidateQueries({ queryKey: ["project_buckets"] });
     if (isNew) navigate({ to: "/projects/$id", params: { id: res.data.id }, replace: true });
   }
 
@@ -233,13 +249,36 @@ function ProjectPage() {
             <Input type="date" value={form.deadline} onChange={(e) => set("deadline", e.target.value)} />
           </Field>
           <Field label="Category">
-            <Select value={form.bucket} onValueChange={(v) => set("bucket", v)}>
+            <Select
+              value={addingCategory ? "__new" : form.bucket}
+              onValueChange={(v) => {
+                if (v === "__new") {
+                  setAddingCategory(true);
+                } else {
+                  setAddingCategory(false);
+                  set("bucket", v);
+                }
+              }}
+            >
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="urgent">{urgentLabel}</SelectItem>
-                <SelectItem value="long_term">{longtermLabel}</SelectItem>
+                <SelectItem value="urgent">{bucketLabel(settings, "urgent")}</SelectItem>
+                <SelectItem value="long_term">{bucketLabel(settings, "long_term")}</SelectItem>
+                {customBuckets.map((b) => (
+                  <SelectItem key={b} value={b}>{bucketLabel(settings, b)}</SelectItem>
+                ))}
+                <SelectItem value="__new">+ New category…</SelectItem>
               </SelectContent>
             </Select>
+            {addingCategory && (
+              <Input
+                className="mt-2"
+                placeholder="Category name, e.g. Health & family"
+                value={newCategory}
+                onChange={(e) => setNewCategory(e.target.value)}
+                autoFocus
+              />
+            )}
           </Field>
           <Field label="Status">
             <Select value={form.status} onValueChange={(v) => set("status", v)}>
