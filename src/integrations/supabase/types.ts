@@ -62,53 +62,71 @@ export type Database = {
         Row: {
           blocker: string | null
           bucket: string | null
+          count_done: number | null
+          count_total: number | null
           created_at: string | null
           deadline: string | null
+          done_definition: string | null
           goal: string | null
           id: string
           last_meaningful_action: string | null
           last_worked_at: string | null
+          milestones: Json | null
           name: string
           next_likely_action: string | null
           progress_percent: number | null
           progress_summary: string | null
+          project_type: string | null
           status: string | null
           user_id: string
           value_score: number | null
+          weekly_target: number | null
         }
         Insert: {
           blocker?: string | null
           bucket?: string | null
+          count_done?: number | null
+          count_total?: number | null
           created_at?: string | null
           deadline?: string | null
+          done_definition?: string | null
           goal?: string | null
           id?: string
           last_meaningful_action?: string | null
           last_worked_at?: string | null
+          milestones?: Json | null
           name: string
           next_likely_action?: string | null
           progress_percent?: number | null
           progress_summary?: string | null
+          project_type?: string | null
           status?: string | null
           user_id?: string
           value_score?: number | null
+          weekly_target?: number | null
         }
         Update: {
           blocker?: string | null
           bucket?: string | null
+          count_done?: number | null
+          count_total?: number | null
           created_at?: string | null
           deadline?: string | null
+          done_definition?: string | null
           goal?: string | null
           id?: string
           last_meaningful_action?: string | null
           last_worked_at?: string | null
+          milestones?: Json | null
           name?: string
           next_likely_action?: string | null
           progress_percent?: number | null
           progress_summary?: string | null
+          project_type?: string | null
           status?: string | null
           user_id?: string
           value_score?: number | null
+          weekly_target?: number | null
         }
         Relationships: []
       }

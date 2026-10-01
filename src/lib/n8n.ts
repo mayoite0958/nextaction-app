@@ -17,6 +17,12 @@ type ProjectSlice = Pick<
   | "next_likely_action"
   | "last_worked_at"
   | "progress_percent"
+  | "project_type"
+  | "done_definition"
+  | "milestones"
+  | "count_total"
+  | "count_done"
+  | "weekly_target"
 >;
 
 export type Energy = "Low" | "Medium" | "High";
@@ -77,8 +83,36 @@ export const N8N_RECOMMEND_URL = "https://vidhikaindustries.app.n8n.cloud/webhoo
 export const N8N_END_SESSION_URL =
   "https://vidhikaindustries.app.n8n.cloud/webhook-test/end-session";
 
+/** n8n webhook that drafts a done definition + milestones. Placeholder until the real URL is supplied. */
+export const N8N_PLAN_PROJECT_URL =
+  "https://vidhikaindustries.app.n8n.cloud/webhook-test/plan-project";
+
+export type ProjectPlan = {
+  done_definition: string | null;
+  milestones: { title: string; weight: number; done: boolean }[];
+};
+
+/** Ask n8n to draft a plan for a finish-line project. */
+export async function planProject(body: { name: string; goal: string }): Promise<ProjectPlan> {
+  const res = await callN8nWebhook(N8N_PLAN_PROJECT_URL, { body });
+  const o = await readOutput(res);
+  const raw = Array.isArray(o["milestones"]) ? (o["milestones"] as unknown[]) : [];
+  return {
+    done_definition:
+      typeof o["done_definition"] === "string" && o["done_definition"].trim() ? o["done_definition"] : null,
+    milestones: raw
+      .map((m) => {
+        if (typeof m === "string") return { title: m, weight: 0, done: false };
+        const r = (m ?? {}) as Record<string, unknown>;
+        const w = Number(r["weight"]);
+        return { title: String(r["title"] ?? ""), weight: Number.isFinite(w) ? w : 0, done: r["done"] === true };
+      })
+      .filter((m) => m.title),
+  };
+}
+
 const PROJECT_FIELDS =
-  "id,name,goal,deadline,bucket,value_score,progress_summary,blocker,last_meaningful_action,next_likely_action,last_worked_at,progress_percent";
+  "id,name,goal,deadline,bucket,value_score,progress_summary,blocker,last_meaningful_action,next_likely_action,last_worked_at,progress_percent,project_type,done_definition,milestones,count_total,count_done,weekly_target";
 
 /**
  * Ask n8n for the user's next action. Sends mode "C" with settings,
@@ -135,6 +169,7 @@ export type SessionEndOutput = {
   next_likely_action: string | null;
   blocker: string | null;
   next_move: string | null;
+  milestone_suggestions: string[];
 };
 
 /** Tell n8n a session ended and return its parsed output. */
@@ -158,6 +193,13 @@ export async function reportSessionEnd(body: {
     next_likely_action: str(o["next_likely_action"]),
     blocker: str(o["blocker"]),
     next_move: str(o["next_move"]),
+    milestone_suggestions: Array.isArray(o["milestone_suggestions"])
+      ? (o["milestone_suggestions"] as unknown[])
+          .map((m) =>
+            typeof m === "string" ? m : m && typeof m === "object" ? String((m as { title?: unknown }).title ?? "") : String(m),
+          )
+          .filter(Boolean)
+      : [],
   };
 }
 

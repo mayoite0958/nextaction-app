@@ -5,6 +5,7 @@ import { AppShell } from "@/components/AppShell";
 import { CategoryBalance } from "@/components/CategoryBalance";
 import { SessionPanel } from "@/components/SessionPanel";
 import { fetchRecentSummary, parseTargets } from "@/lib/categories";
+import { fetchWeekCounts, projectType } from "@/lib/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -71,6 +72,7 @@ function Today() {
     enabled: !!settings,
     queryFn: () => fetchRecentSummary(settings),
   });
+  const weekQuery = useQuery({ queryKey: ["week_counts"], queryFn: fetchWeekCounts });
   const [recommendation, setRecommendation] = useState<Recommendation | null>(null);
   const [rejected, setRejected] = useState<string[]>([]);
   const [timeMin, setTimeMin] = useState("30");
@@ -285,7 +287,11 @@ function Today() {
                 <div>
                   <div className="flex justify-between text-xs text-muted-foreground">
                     <span>Progress</span>
-                    <span>{p.progress_percent ?? 0}%</span>
+                    <span>
+                      {projectType(p.project_type) === "ongoing"
+                        ? `${weekQuery.data?.[p.id] ?? 0}/${p.weekly_target ?? "?"} this week`
+                        : `${p.progress_percent ?? 0}%`}
+                    </span>
                   </div>
                   <div className="mt-1 h-2 overflow-hidden rounded-full bg-muted">
                     <div className="h-full bg-primary" style={{ width: `${p.progress_percent ?? 0}%` }} />
