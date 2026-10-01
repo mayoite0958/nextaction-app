@@ -16,6 +16,16 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { bucketLabel, daysLeft, relativeTime, slugifyBucket } from "@/lib/nextaction";
+import { planProject } from "@/lib/n8n";
+import {
+  PROJECT_TYPES,
+  computeProgress,
+  parseMilestones,
+  projectType,
+  weekStart,
+  type Milestone,
+  type ProjectType,
+} from "@/lib/progress";
 
 export const Route = createFileRoute("/_authenticated/projects/$id")({
   head: () => ({
@@ -38,7 +48,12 @@ type Form = {
   status: string;
   bucket: string;
   value_score: number;
-  progress_percent: number;
+  project_type: ProjectType;
+  done_definition: string;
+  milestones: Milestone[];
+  count_total: string;
+  count_done: number;
+  weekly_target: string;
   progress_summary: string;
   blocker: string;
   last_meaningful_action: string;
@@ -52,7 +67,12 @@ const EMPTY: Form = {
   status: "active",
   bucket: "long_term",
   value_score: 3,
-  progress_percent: 0,
+  project_type: "finish_line",
+  done_definition: "",
+  milestones: [],
+  count_total: "",
+  count_done: 0,
+  weekly_target: "",
   progress_summary: "",
   blocker: "",
   last_meaningful_action: "",
@@ -123,7 +143,12 @@ function ProjectPage() {
       status: p.status ?? "active",
       bucket: p.bucket ?? "long_term",
       value_score: p.value_score ?? 3,
-      progress_percent: p.progress_percent ?? 0,
+      project_type: projectType(p.project_type),
+      done_definition: p.done_definition ?? "",
+      milestones: parseMilestones(p.milestones),
+      count_total: p.count_total != null ? String(p.count_total) : "",
+      count_done: p.count_done ?? 0,
+      weekly_target: p.weekly_target != null ? String(p.weekly_target) : "",
       progress_summary: p.progress_summary ?? "",
       blocker: p.blocker ?? "",
       last_meaningful_action: p.last_meaningful_action ?? "",
@@ -139,14 +164,65 @@ function ProjectPage() {
     ? slugifyBucket(newCategory) || "long_term"
     : form.bucket;
 
+  const weekQuery = useQuery({
+    queryKey: ["project_week", id],
+    enabled: !isNew,
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("sessions")
+        .select("id", { count: "exact", head: true })
+        .eq("project_id", id)
+        .eq("status", "done")
+        .gte("ended_at", weekStart().toISOString());
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+  const doneThisWeek = weekQuery.data ?? 0;
+  const numOrNull = (v: string) => {
+    const n = Number.parseInt(v, 10);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  };
+  const typeFields = () => ({
+    project_type: form.project_type,
+    done_definition: form.done_definition || null,
+    milestones: form.milestones.filter((m) => m.title.trim()),
+    count_total: numOrNull(form.count_total),
+    count_done: form.count_done,
+    weekly_target: numOrNull(form.weekly_target),
+  });
+  const progress = computeProgress(typeFields(), doneThisWeek);
+  const [planning, setPlanning] = useState(false);
+  async function generate() {
+    if (!form.name.trim()) { toast.error("Give the project a name first."); return; }
+    setPlanning(true);
+    try {
+      const plan = await planProject({ name: form.name.trim(), goal: form.goal });
+      setForm((f) => ({
+        ...f,
+        done_definition: plan.done_definition ?? f.done_definition,
+        milestones: plan.milestones.length ? plan.milestones : f.milestones,
+      }));
+      toast.success("Milestones drafted — edit them, then save.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not reach n8n");
+    } finally {
+      setPlanning(false);
+    }
+  }
+  const setMilestone = (i: number, patch: Partial<Milestone>) =>
+    set("milestones", form.milestones.map((m, j) => (j === i ? { ...m, ...patch } : m)));
+  const weightTotal = form.milestones.reduce((s, m) => s + (m.weight || 0), 0);
+
   const payload = () => ({
+    ...typeFields(),
     name: form.name.trim(),
     goal: form.goal || null,
     deadline: form.deadline || null,
     status: form.status,
     bucket: effectiveBucket,
     value_score: form.value_score,
-    progress_percent: form.progress_percent,
+    progress_percent: progress,
     progress_summary: form.progress_summary || null,
     blocker: form.blocker || null,
     last_meaningful_action: form.last_meaningful_action || null,
@@ -290,7 +366,7 @@ function ProjectPage() {
               <SelectContent>
                 <SelectItem value="active">Active</SelectItem>
                 <SelectItem value="paused">Paused</SelectItem>
-                <SelectItem value="done">Done</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
               </SelectContent>
             </Select>
           </Field>
@@ -298,9 +374,102 @@ function ProjectPage() {
         <Field label={`Value: ${form.value_score}/5`}>
           <Slider min={1} max={5} step={1} value={[form.value_score]} onValueChange={(v) => set("value_score", v[0] ?? 3)} />
         </Field>
-        <Field label={`Progress: ${form.progress_percent}%`}>
-          <Slider min={0} max={100} step={5} value={[form.progress_percent]} onValueChange={(v) => set("progress_percent", v[0] ?? 0)} />
+        <Field label="Project type">
+          <div className="flex flex-wrap gap-2">
+            {PROJECT_TYPES.map((t) => (
+              <Button
+                key={t.value}
+                type="button"
+                size="sm"
+                variant={form.project_type === t.value ? "default" : "outline"}
+                onClick={() => set("project_type", t.value)}
+                title={t.hint}
+              >
+                {t.label}
+              </Button>
+            ))}
+          </div>
         </Field>
+
+        {form.project_type === "finish_line" && (
+          <div className="grid gap-3 rounded-md border border-border p-4">
+            <Field label="Done looks like">
+              <Textarea value={form.done_definition} onChange={(e) => set("done_definition", e.target.value)} />
+            </Field>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm text-muted-foreground">
+                Milestones · weights total {weightTotal}%{weightTotal !== 100 && " (aim for 100)"}
+              </span>
+              <Button type="button" size="sm" variant="secondary" onClick={generate} disabled={planning}>
+                {planning ? "Generating…" : "Generate milestones with AI"}
+              </Button>
+            </div>
+            {form.milestones.map((m, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 accent-primary"
+                  checked={m.done}
+                  onChange={(e) => setMilestone(i, { done: e.target.checked })}
+                  aria-label="Done"
+                />
+                <Input value={m.title} placeholder="Milestone" onChange={(e) => setMilestone(i, { title: e.target.value })} />
+                <Input
+                  type="number"
+                  className="w-20"
+                  value={m.weight}
+                  onChange={(e) => setMilestone(i, { weight: Number(e.target.value) || 0 })}
+                  aria-label="Weight %"
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => set("milestones", form.milestones.filter((_, j) => j !== i))}
+                >
+                  ✕
+                </Button>
+              </div>
+            ))}
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="justify-self-start"
+              onClick={() => set("milestones", [...form.milestones, { title: "", weight: 0, done: false }])}
+            >
+              + Add milestone
+            </Button>
+          </div>
+        )}
+        {form.project_type === "countable" && (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Total to get through">
+              <Input type="number" min={1} value={form.count_total} onChange={(e) => set("count_total", e.target.value)} />
+            </Field>
+            <Field label="Done so far">
+              <Input type="number" min={0} value={form.count_done} onChange={(e) => set("count_done", Math.max(0, Number(e.target.value) || 0))} />
+            </Field>
+          </div>
+        )}
+        {form.project_type === "ongoing" && (
+          <Field label="Sessions per week">
+            <Input type="number" min={1} className="w-28" value={form.weekly_target} onChange={(e) => set("weekly_target", e.target.value)} />
+          </Field>
+        )}
+        <div>
+          <div className="flex justify-between text-sm text-muted-foreground">
+            <span>Progress (calculated)</span>
+            <span>
+              {form.project_type === "ongoing"
+                ? `${doneThisWeek}/${numOrNull(form.weekly_target) ?? "?"} this week`
+                : `${progress}%`}
+            </span>
+          </div>
+          <div className="mt-1 h-2 overflow-hidden rounded-full bg-muted">
+            <div className="h-full bg-primary" style={{ width: `${progress}%` }} />
+          </div>
+        </div>
         <Field label="Blocker"><Input value={form.blocker} onChange={(e) => set("blocker", e.target.value)} /></Field>
         <Field label="Last meaningful action">
           <Input value={form.last_meaningful_action} onChange={(e) => set("last_meaningful_action", e.target.value)} />
