@@ -199,8 +199,25 @@ export function SessionPanel({
     if (result?.next_likely_action) update.next_likely_action = result.next_likely_action;
     if (result?.blocker) update.blocker = result.blocker;
     const { error } = await supabase.from("projects").update(update).eq("id", project.id);
+    if (error) { setBusy(false); toast.error(error.message); return; }
+    const keptNotes = (result?.notes ?? []).filter((_, i) => notesKept[i]);
+    if (keptNotes.length) {
+      await supabase.from("project_notes").insert(
+        keptNotes.map((text) => ({ project_id: project.id, type: "note", text, source: "session" })),
+      );
+    }
+    const keptTasks = (result?.new_tasks ?? []).filter((_, i) => tasksKept[i]);
+    if (keptTasks.length) {
+      await supabase.from("tasks").insert(
+        keptTasks.map((t) => ({ project_id: project.id, title: t.title, est_minutes: t.est_minutes, source: "ai" })),
+      );
+      void qc.invalidateQueries({ queryKey: ["tasks"] });
+    }
+    if (markTaskDone && taskId) {
+      await supabase.from("tasks").update({ status: "done", done_at: new Date().toISOString() }).eq("id", taskId);
+      void qc.invalidateQueries({ queryKey: ["tasks"] });
+    }
     setBusy(false);
-    if (error) { toast.error(error.message); return; }
     toast.success("Project updated.");
     await qc.invalidateQueries({ queryKey: ["projects"] });
     await qc.invalidateQueries({ queryKey: ["project", project.id] });
