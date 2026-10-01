@@ -70,6 +70,7 @@ export type Database = {
           last_worked_at: string | null
           name: string
           next_likely_action: string | null
+          progress_percent: number | null
           progress_summary: string | null
           status: string | null
           user_id: string
@@ -86,6 +87,7 @@ export type Database = {
           last_worked_at?: string | null
           name: string
           next_likely_action?: string | null
+          progress_percent?: number | null
           progress_summary?: string | null
           status?: string | null
           user_id?: string
@@ -102,6 +104,7 @@ export type Database = {
           last_worked_at?: string | null
           name?: string
           next_likely_action?: string | null
+          progress_percent?: number | null
           progress_summary?: string | null
           status?: string | null
           user_id?: string
@@ -305,6 +308,7 @@ export type Database = {
         Row: {
           bucket_longterm_label: string | null
           bucket_urgent_label: string | null
+          category_targets: Json | null
           coaching_tone: string | null
           consent_given_at: string | null
           created_at: string | null
@@ -329,6 +333,7 @@ export type Database = {
         Insert: {
           bucket_longterm_label?: string | null
           bucket_urgent_label?: string | null
+          category_targets?: Json | null
           coaching_tone?: string | null
           consent_given_at?: string | null
           created_at?: string | null
@@ -353,6 +358,7 @@ export type Database = {
         Update: {
           bucket_longterm_label?: string | null
           bucket_urgent_label?: string | null
+          category_targets?: Json | null
           coaching_tone?: string | null
           consent_given_at?: string | null
           created_at?: string | null

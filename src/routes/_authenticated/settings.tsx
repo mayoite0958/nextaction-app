@@ -28,7 +28,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { COACHING_TONES, ROLE_TEMPLATES, TIMEZONES } from "@/lib/nextaction";
+import { bucketLabel, COACHING_TONES, ROLE_TEMPLATES, TIMEZONES } from "@/lib/nextaction";
+import { parseTargets } from "@/lib/categories";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({
@@ -69,6 +70,7 @@ function SettingsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [form, setForm] = useState<Form | null>(null);
+  const [targets, setTargets] = useState<Record<string, number> | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -78,6 +80,15 @@ function SettingsPage() {
       const { data, error } = await supabase.from("user_settings").select("*").maybeSingle();
       if (error) throw error;
       return data;
+    },
+  });
+
+  const bucketsQuery = useQuery({
+    queryKey: ["project_buckets", "active"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("projects").select("bucket").eq("status", "active");
+      if (error) throw error;
+      return [...new Set((data ?? []).map((r) => r.bucket ?? "long_term"))];
     },
   });
 
@@ -110,24 +121,42 @@ function SettingsPage() {
     });
   }, [row, form]);
 
+  useEffect(() => {
+    if (row && targets === null) setTargets(parseTargets(row.category_targets));
+  }, [row, targets]);
+
+  const activeBucketLabels = [
+    ...new Set((bucketsQuery.data ?? []).map((b) => bucketLabel(form, b))),
+  ];
+  const categoryNames = [
+    ...new Set([...activeBucketLabels, ...Object.keys(targets ?? {})]),
+  ];
+  const targetTotal = categoryNames.reduce((s, n) => s + (targets?.[n] ?? 0), 0);
+
   function set<K extends keyof Form>(key: K, value: Form[K]) {
     setForm((f) => (f ? { ...f, [key]: value } : f));
   }
 
   async function save() {
     if (!form) return;
+    if (categoryNames.length > 0 && targetTotal !== 100) {
+      toast.error(`Category targets add up to ${targetTotal}%. Make them total 100%.`);
+      return;
+    }
     setSaving(true);
     try {
       const { data: userData } = await supabase.auth.getUser();
       const uid = userData.user?.id;
       if (!uid) throw new Error("You are signed out.");
+      const cleanTargets: Record<string, number> = {};
+      for (const n of categoryNames) cleanTargets[n] = targets?.[n] ?? 0;
       const { error } = await supabase
         .from("user_settings")
         .update({
+          category_targets: cleanTargets,
           display_name: form.display_name.trim() || null,
           role_template: form.role_template,
           timezone: form.timezone,
-          urgent_share: form.urgent_share,
           bucket_urgent_label: form.bucket_urgent_label,
           bucket_longterm_label: form.bucket_longterm_label,
           value_label: form.value_label.trim() || null,
@@ -287,17 +316,42 @@ function SettingsPage() {
           </div>
         </div>
         <div className="space-y-3">
-          <Label>
-            Split: {form.urgent_share}% {form.bucket_urgent_label} / {100 - form.urgent_share}%{" "}
-            {form.bucket_longterm_label}
-          </Label>
-          <Slider
-            value={[form.urgent_share]}
-            min={0}
-            max={100}
-            step={5}
-            onValueChange={(v) => set("urgent_share", v[0] ?? 0)}
-          />
+          <div className="flex items-baseline justify-between">
+            <Label>Category targets (% of your time)</Label>
+            <span
+              className={`text-sm font-semibold ${targetTotal === 100 ? "text-primary" : "text-destructive"}`}
+            >
+              Total: {targetTotal}%
+            </span>
+          </div>
+          {categoryNames.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Add active projects to set targets.</p>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {categoryNames.map((name) => (
+                <div key={name} className="flex items-center gap-3">
+                  <span className="flex-1 truncate text-sm">{name}</span>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={100}
+                    className="w-24"
+                    value={targets?.[name] ?? 0}
+                    onChange={(e) =>
+                      setTargets((t) => ({
+                        ...t,
+                        [name]: Math.max(0, Math.min(100, Number(e.target.value) || 0)),
+                      }))
+                    }
+                  />
+                  <span className="text-sm text-muted-foreground">%</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {targetTotal !== 100 && categoryNames.length > 0 && (
+            <p className="text-sm text-destructive">Targets must add up to 100% before saving.</p>
+          )}
         </div>
         <div className="space-y-2">
           <Label>What you're optimising for</Label>

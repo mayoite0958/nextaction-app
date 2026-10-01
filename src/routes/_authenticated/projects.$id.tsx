@@ -38,6 +38,7 @@ type Form = {
   status: string;
   bucket: string;
   value_score: number;
+  progress_percent: number;
   progress_summary: string;
   blocker: string;
   last_meaningful_action: string;
@@ -51,6 +52,7 @@ const EMPTY: Form = {
   status: "active",
   bucket: "long_term",
   value_score: 3,
+  progress_percent: 0,
   progress_summary: "",
   blocker: "",
   last_meaningful_action: "",
@@ -121,6 +123,7 @@ function ProjectPage() {
       status: p.status ?? "active",
       bucket: p.bucket ?? "long_term",
       value_score: p.value_score ?? 3,
+      progress_percent: p.progress_percent ?? 0,
       progress_summary: p.progress_summary ?? "",
       blocker: p.blocker ?? "",
       last_meaningful_action: p.last_meaningful_action ?? "",
@@ -143,6 +146,7 @@ function ProjectPage() {
     status: form.status,
     bucket: effectiveBucket,
     value_score: form.value_score,
+    progress_percent: form.progress_percent,
     progress_summary: form.progress_summary || null,
     blocker: form.blocker || null,
     last_meaningful_action: form.last_meaningful_action || null,
@@ -293,6 +297,9 @@ function ProjectPage() {
         </div>
         <Field label={`Value: ${form.value_score}/5`}>
           <Slider min={1} max={5} step={1} value={[form.value_score]} onValueChange={(v) => set("value_score", v[0] ?? 3)} />
+        </Field>
+        <Field label={`Progress: ${form.progress_percent}%`}>
+          <Slider min={0} max={100} step={5} value={[form.progress_percent]} onValueChange={(v) => set("progress_percent", v[0] ?? 0)} />
         </Field>
         <Field label="Blocker"><Input value={form.blocker} onChange={(e) => set("blocker", e.target.value)} /></Field>
         <Field label="Last meaningful action">
