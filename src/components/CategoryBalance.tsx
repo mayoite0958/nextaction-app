@@ -17,9 +17,9 @@ export function CategoryBalance({
         </h2>
         <p className="text-xs text-muted-foreground">Target vs. actual, last 7 days</p>
       </div>
-      {names.length === 0 ? (
+      {Object.keys(targets).length === 0 ? (
         <p className="mt-3 text-sm text-muted-foreground">
-          Set category targets in Settings to see your balance.
+          Set your category targets in Settings
         </p>
       ) : (
         <ul className="mt-4 space-y-3">
@@ -46,7 +46,7 @@ export function CategoryBalance({
           })}
         </ul>
       )}
-      {names.length > 0 && totalDone === 0 && (
+      {Object.keys(targets).length > 0 && totalDone === 0 && (
         <p className="mt-3 text-xs text-muted-foreground">No finished sessions in the last 7 days yet.</p>
       )}
     </div>

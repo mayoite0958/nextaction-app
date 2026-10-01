@@ -374,7 +374,8 @@ function ProjectPage() {
         <Field label={`Value: ${form.value_score}/5`}>
           <Slider min={1} max={5} step={1} value={[form.value_score]} onValueChange={(v) => set("value_score", v[0] ?? 3)} />
         </Field>
-        <Field label="Project type">
+        <div className="flex flex-col gap-1.5 text-sm">
+          <span className="text-muted-foreground">Project type</span>
           <div className="flex flex-wrap gap-2">
             {PROJECT_TYPES.map((t) => (
               <Button
@@ -389,7 +390,7 @@ function ProjectPage() {
               </Button>
             ))}
           </div>
-        </Field>
+        </div>
 
         {form.project_type === "finish_line" && (
           <div className="grid gap-3 rounded-md border border-border p-4">
