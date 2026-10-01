@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
+import { TaskList } from "@/components/TaskList";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -298,6 +299,8 @@ function ProjectPage() {
           {" · "}Last worked {relativeTime(p?.last_worked_at ?? null)}
         </p>
       )}
+
+      {!isNew && <TaskList projectId={id} />}
 
       {!isNew && (
         <section className="panel mt-6 p-5">

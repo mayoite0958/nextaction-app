@@ -1,30 +1,9 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
+import { daysLeft } from "@/lib/nextaction";
 import { daysSince, fetchRecentSummary, parseTargets } from "@/lib/categories";
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"];
-type ProjectSlice = Pick<
-  ProjectRow,
-  | "id"
-  | "name"
-  | "goal"
-  | "deadline"
-  | "bucket"
-  | "value_score"
-  | "progress_summary"
-  | "blocker"
-  | "last_meaningful_action"
-  | "next_likely_action"
-  | "last_worked_at"
-  | "progress_percent"
-  | "project_type"
-  | "done_definition"
-  | "milestones"
-  | "count_total"
-  | "count_done"
-  | "weekly_target"
->;
-
 export type Energy = "Low" | "Medium" | "High";
 
 export type Recommendation = {
@@ -34,6 +13,9 @@ export type Recommendation = {
   done_looks_like: string | null;
   why: string | null;
   clarifying_question: string | null;
+  task_id: string | null;
+  new_task_title: string | null;
+  est_minutes: number | null;
 };
 
 /**
@@ -111,13 +93,25 @@ export async function planProject(body: { name: string; goal: string }): Promise
   };
 }
 
-const PROJECT_FIELDS =
-  "id,name,goal,deadline,bucket,value_score,progress_summary,blocker,last_meaningful_action,next_likely_action,last_worked_at,progress_percent,project_type,done_definition,milestones,count_total,count_done,weekly_target";
+const PROJECT_FIELDS = "*";
+
+const minutesBetween = (a: string | null, b: string | null) =>
+  a && b ? Math.max(0, Math.round((new Date(b).getTime() - new Date(a).getTime()) / 60000)) : null;
+
+function groupBy<T>(rows: T[], key: (r: T) => string | null, max: number): Record<string, T[]> {
+  const out: Record<string, T[]> = {};
+  for (const r of rows) {
+    const k = key(r);
+    if (!k) continue;
+    const list = (out[k] ??= []);
+    if (list.length < max) list.push(r);
+  }
+  return out;
+}
 
 /**
- * Ask n8n for the user's next action. Sends mode "C" with settings,
- * active projects, category targets, a 7-day summary, time, energy and
- * rejected actions. Returns n8n's parsed recommendation.
+ * Ask n8n for the user's next action with a full context packet
+ * (now, settings, balance, projects + tasks/sessions/notes, rejections, urgent items).
  */
 export async function requestRecommendation(input: {
   time_min: number;
@@ -131,27 +125,114 @@ export async function requestRecommendation(input: {
     ]);
   if (settingsError) throw settingsError;
   if (projectsError) throw projectsError;
-  const recent_summary = await fetchRecentSummary(settings);
+  const active = (projects ?? []) as ProjectRow[];
+  const ids = active.map((p) => p.id);
+  const tz = settings?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const since14 = new Date(Date.now() - 14 * 86400000).toISOString();
+  const none = ["00000000-0000-0000-0000-000000000000"];
+
+  const [recent_summary, tasks, sessions, notes, today, rejections, urgent] = await Promise.all([
+    fetchRecentSummary(settings),
+    supabase
+      .from("tasks")
+      .select("id,project_id,title,milestone,status,est_minutes,energy,due_date")
+      .in("project_id", ids.length ? ids : none)
+      .in("status", ["todo", "doing"])
+      .order("due_date", { ascending: true, nullsFirst: false })
+      .limit(500),
+    supabase
+      .from("sessions")
+      .select("project_id,ended_at,work_started_at,recommended_action,outcome,where_stopped,right_task,less_stuck")
+      .in("project_id", ids.length ? ids : none)
+      .eq("status", "done")
+      .order("ended_at", { ascending: false })
+      .limit(300),
+    supabase
+      .from("project_notes")
+      .select("project_id,type,text,source,created_at")
+      .in("project_id", ids.length ? ids : none)
+      .order("created_at", { ascending: false })
+      .limit(300),
+    supabase
+      .from("sessions")
+      .select("project_name,recommended_action,outcome,work_started_at,ended_at")
+      .eq("status", "done")
+      .gte("ended_at", startOfToday.toISOString())
+      .order("ended_at", { ascending: true }),
+    supabase
+      .from("sessions")
+      .select("recommended_action,project_name,created_at")
+      .eq("status", "rejected")
+      .gte("created_at", since14)
+      .order("created_at", { ascending: false })
+      .limit(50),
+    supabase.from("urgent_items").select("*").eq("status", "open"),
+  ]);
+  for (const r of [tasks, sessions, notes, today, rejections, urgent]) if (r.error) throw r.error;
+
+  const tasksBy = groupBy(tasks.data ?? [], (t) => t.project_id, 8);
+  const sessionsBy = groupBy(sessions.data ?? [], (t) => t.project_id, 3);
+  const notesBy = groupBy(notes.data ?? [], (t) => t.project_id, 5);
+  const now = new Date();
+  const fmt = (o: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat("en-CA", { timeZone: tz, ...o }).format(now);
 
   const res = await callN8nWebhook(N8N_RECOMMEND_URL, {
     body: {
       mode: "C",
+      now: {
+        date: fmt({ year: "numeric", month: "2-digit", day: "2-digit" }),
+        weekday: new Intl.DateTimeFormat("en-US", { timeZone: tz, weekday: "long" }).format(now),
+        local_time: fmt({ hour: "2-digit", minute: "2-digit", hour12: false }),
+        timezone: tz,
+        time_min: input.time_min,
+        energy: input.energy,
+      },
       time_min: input.time_min,
       energy: input.energy,
       rejected_actions: input.rejected_actions,
       settings: settings ?? null,
       category_targets: parseTargets(settings?.category_targets),
-      recent_summary,
-      projects: ((projects ?? []) as ProjectSlice[]).map((p) => ({
+      balance: {
+        last_7_days: Object.fromEntries(
+          Object.entries(recent_summary).map(([k, v]) => [k, { minutes: v.minutes, sessions: v.count }]),
+        ),
+        today: (today.data ?? []).map((s) => ({
+          project: s.project_name,
+          action: s.recommended_action,
+          outcome: s.outcome,
+          minutes: minutesBetween(s.work_started_at, s.ended_at),
+        })),
+      },
+      projects: active.map((p) => ({
         ...p,
-        progress_percent: p.progress_percent ?? null,
         days_since_worked: daysSince(p.last_worked_at),
+        days_to_deadline: daysLeft(p.deadline),
+        open_tasks: tasksBy[p.id] ?? [],
+        recent_sessions: (sessionsBy[p.id] ?? []).map((s) => ({
+          date: s.ended_at,
+          action: s.recommended_action,
+          outcome: s.outcome,
+          where_stopped: s.where_stopped,
+          right_task: s.right_task,
+          less_stuck: s.less_stuck,
+          minutes_worked: minutesBetween(s.work_started_at, s.ended_at),
+        })),
+        notes: notesBy[p.id] ?? [],
       })),
+      rejections: (rejections.data ?? []).map((r) => ({
+        action: r.recommended_action,
+        project_name: r.project_name,
+        at: r.created_at,
+      })),
+      urgent_items: urgent.data ?? [],
     },
   });
 
   const output = await readOutput(res);
   const str = (v: unknown) => (typeof v === "string" && v.trim() ? v : null);
+  const est = Number(output["est_minutes"]);
   return {
     project_id: str(output["project_id"]),
     project_name: str(output["project_name"]),
@@ -159,6 +240,9 @@ export async function requestRecommendation(input: {
     done_looks_like: str(output["done_looks_like"]),
     why: str(output["why"]),
     clarifying_question: str(output["clarifying_question"]),
+    task_id: str(output["task_id"]),
+    new_task_title: str(output["new_task_title"]),
+    est_minutes: output["est_minutes"] != null && Number.isFinite(est) && est > 0 ? Math.round(est) : null,
   };
 }
 
