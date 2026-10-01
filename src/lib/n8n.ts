@@ -1,8 +1,23 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
+import { daysSince, fetchRecentSummary, parseTargets } from "@/lib/categories";
 
-type SettingsRow = Database["public"]["Tables"]["user_settings"]["Row"];
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"];
+type ProjectSlice = Pick<
+  ProjectRow,
+  | "id"
+  | "name"
+  | "goal"
+  | "deadline"
+  | "bucket"
+  | "value_score"
+  | "progress_summary"
+  | "blocker"
+  | "last_meaningful_action"
+  | "next_likely_action"
+  | "last_worked_at"
+  | "progress_percent"
+>;
 
 export type Energy = "Low" | "Medium" | "High";
 
@@ -58,29 +73,17 @@ export async function callN8nWebhook(
 
 /** n8n webhook that receives app events. Swap to the Production URL when live. */
 export const N8N_RECOMMEND_URL = "https://vidhikaindustries.app.n8n.cloud/webhook-test/recommend";
+/** n8n webhook called when a work session ends. */
+export const N8N_END_SESSION_URL =
+  "https://vidhikaindustries.app.n8n.cloud/webhook-test/end-session";
 
 const PROJECT_FIELDS =
-  "id,name,goal,deadline,bucket,value_score,progress_summary,blocker,last_meaningful_action,next_likely_action,last_worked_at";
-
-type ProjectSlice = Pick<
-  ProjectRow,
-  | "id"
-  | "name"
-  | "goal"
-  | "deadline"
-  | "bucket"
-  | "value_score"
-  | "progress_summary"
-  | "blocker"
-  | "last_meaningful_action"
-  | "next_likely_action"
-  | "last_worked_at"
->;
+  "id,name,goal,deadline,bucket,value_score,progress_summary,blocker,last_meaningful_action,next_likely_action,last_worked_at,progress_percent";
 
 /**
- * Ask n8n for the user's next action. Sends mode "C" with the user's
- * settings, active projects, available time, energy, and any actions
- * they already rejected. Returns n8n's parsed recommendation.
+ * Ask n8n for the user's next action. Sends mode "C" with settings,
+ * active projects, category targets, a 7-day summary, time, energy and
+ * rejected actions. Returns n8n's parsed recommendation.
  */
 export async function requestRecommendation(input: {
   time_min: number;
@@ -94,6 +97,7 @@ export async function requestRecommendation(input: {
     ]);
   if (settingsError) throw settingsError;
   if (projectsError) throw projectsError;
+  const recent_summary = await fetchRecentSummary(settings);
 
   const res = await callN8nWebhook(N8N_RECOMMEND_URL, {
     body: {
@@ -102,26 +106,17 @@ export async function requestRecommendation(input: {
       energy: input.energy,
       rejected_actions: input.rejected_actions,
       settings: settings ?? null,
-      projects: (projects ?? []) as ProjectSlice[],
+      category_targets: parseTargets(settings?.category_targets),
+      recent_summary,
+      projects: ((projects ?? []) as ProjectSlice[]).map((p) => ({
+        ...p,
+        progress_percent: p.progress_percent ?? null,
+        days_since_worked: daysSince(p.last_worked_at),
+      })),
     },
   });
 
-  const text = await res.text();
-  if (!res.ok) throw new Error(`n8n replied ${res.status}: ${text.slice(0, 200)}`);
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(text);
-  } catch {
-    throw new Error("n8n did not reply with JSON.");
-  }
-
-  const root = Array.isArray(parsed) ? parsed[0] : parsed;
-  const output = (root as { output?: Record<string, unknown> } | null)?.output;
-  if (!output || typeof output !== "object") {
-    throw new Error("n8n's reply had no output object.");
-  }
-
+  const output = await readOutput(res);
   const str = (v: unknown) => (typeof v === "string" && v.trim() ? v : null);
   return {
     project_id: str(output["project_id"]),
@@ -131,4 +126,27 @@ export async function requestRecommendation(input: {
     why: str(output["why"]),
     clarifying_question: str(output["clarifying_question"]),
   };
+}
+
+/** Tell n8n a session ended; returns its suggested progress_percent (or null). */
+export async function reportSessionEnd(body: Record<string, unknown>): Promise<number | null> {
+  const res = await callN8nWebhook(N8N_END_SESSION_URL, { body: { mode: "E", ...body } });
+  const output = await readOutput(res);
+  const n = Number(output["progress_percent"]);
+  return Number.isFinite(n) ? Math.min(100, Math.max(0, Math.round(n))) : null;
+}
+
+async function readOutput(res: Response): Promise<Record<string, unknown>> {
+  const text = await res.text();
+  if (!res.ok) throw new Error(`n8n replied ${res.status}: ${text.slice(0, 200)}`);
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    throw new Error("n8n did not reply with JSON.");
+  }
+  const root = Array.isArray(parsed) ? parsed[0] : parsed;
+  const output = (root as { output?: Record<string, unknown> } | null)?.output;
+  if (!output || typeof output !== "object") throw new Error("n8n's reply had no output object.");
+  return output;
 }
