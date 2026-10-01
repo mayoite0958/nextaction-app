@@ -129,15 +129,19 @@ function ProjectPage() {
   }, [p]);
 
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setForm((f) => ({ ...f, [k]: v }));
-  const urgentLabel = settingsQuery.data?.bucket_urgent_label ?? "Urgent";
-  const longtermLabel = settingsQuery.data?.bucket_longterm_label ?? "Long-term";
+  const settings = settingsQuery.data;
+  const knownBuckets = bucketsQuery.data ?? [];
+  const customBuckets = knownBuckets.filter((b) => b !== "urgent" && b !== "long_term");
+  const effectiveBucket = addingCategory
+    ? slugifyBucket(newCategory) || "long_term"
+    : form.bucket;
 
   const payload = () => ({
     name: form.name.trim(),
     goal: form.goal || null,
     deadline: form.deadline || null,
     status: form.status,
-    bucket: form.bucket,
+    bucket: effectiveBucket,
     value_score: form.value_score,
     progress_summary: form.progress_summary || null,
     blocker: form.blocker || null,
