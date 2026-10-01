@@ -2,7 +2,9 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
-import { SplitBar } from "@/components/SplitBar";
+import { CategoryBalance } from "@/components/CategoryBalance";
+import { SessionPanel } from "@/components/SessionPanel";
+import { fetchRecentSummary, parseTargets } from "@/lib/categories";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -64,6 +66,11 @@ function Today() {
   });
 
   const settings = settingsQuery.data;
+  const summaryQuery = useQuery({
+    queryKey: ["recent_summary", settings?.bucket_urgent_label, settings?.bucket_longterm_label],
+    enabled: !!settings,
+    queryFn: () => fetchRecentSummary(settings),
+  });
   const [recommendation, setRecommendation] = useState<Recommendation | null>(null);
   const [rejected, setRejected] = useState<string[]>([]);
   const [timeMin, setTimeMin] = useState("30");
@@ -108,8 +115,6 @@ function Today() {
     );
   }
 
-  const urgentLabel = bucketLabel(settings, "urgent");
-  const longtermLabel = bucketLabel(settings, "long_term");
   const projects = projectsQuery.data ?? [];
 
   return (
@@ -122,10 +127,9 @@ function Today() {
       </p>
 
       <div className="mt-6">
-        <SplitBar
-          urgentShare={settings.urgent_share ?? 70}
-          urgentLabel={urgentLabel}
-          longtermLabel={longtermLabel}
+        <CategoryBalance
+          targets={parseTargets(settings.category_targets)}
+          summary={summaryQuery.data ?? {}}
         />
       </div>
 
@@ -199,6 +203,17 @@ function Today() {
                 Question for you: {recommendation.clarifying_question}
               </p>
             )}
+            {recommendation.next_action && (
+              <SessionPanel
+                key={recommendation.next_action}
+                recommendation={recommendation}
+                timeMin={Math.max(1, Number.parseInt(timeMin, 10) || 30)}
+                energy={energy}
+                currentProgress={
+                  projects.find((p) => p.id === recommendation.project_id)?.progress_percent ?? null
+                }
+              />
+            )}
           </div>
         ) : (
           <p className="mt-3 text-sm text-muted-foreground">
@@ -266,6 +281,16 @@ function Today() {
                     </span>
                   )}
                 </p>
+
+                <div>
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>Progress</span>
+                    <span>{p.progress_percent ?? 0}%</span>
+                  </div>
+                  <div className="mt-1 h-2 overflow-hidden rounded-full bg-muted">
+                    <div className="h-full bg-primary" style={{ width: `${p.progress_percent ?? 0}%` }} />
+                  </div>
+                </div>
 
                 <dl className="space-y-1.5 text-sm">
                   <div className="flex gap-2">
