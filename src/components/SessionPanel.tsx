@@ -362,6 +362,19 @@ export function SessionPanel({
   );
 }
 
+function CheckRow({ checked, onToggle, label }: { checked: boolean; onToggle: () => void; label: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className={`flex w-full items-center gap-3 rounded-md border p-2.5 text-left ${checked ? "border-primary bg-primary/10" : "border-border"}`}
+    >
+      <span>{checked ? "☑" : "☐"}</span>
+      <span className="flex-1">{label}</span>
+    </button>
+  );
+}
+
 function Chips({
   label,
   options,
