@@ -130,21 +130,81 @@ function Today() {
       </div>
 
       <section className="panel mt-6 p-5">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="font-display text-sm font-semibold uppercase tracking-widest text-primary">
-            Your next action
-          </h2>
-          <Button size="sm" onClick={() => ask("next_action_requested")} disabled={asking}>
-            {asking ? "Thinking…" : "Get my next action"}
+        <h2 className="font-display text-sm font-semibold uppercase tracking-widest text-primary">
+          Your next action
+        </h2>
+
+        <div className="mt-4 flex flex-wrap items-end gap-3">
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="text-muted-foreground">Time available (min)</span>
+            <Input
+              type="number"
+              min={5}
+              step={5}
+              value={timeMin}
+              onChange={(e) => setTimeMin(e.target.value)}
+              className="w-28"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="text-muted-foreground">Energy</span>
+            <Select value={energy} onValueChange={(v) => setEnergy(v as Energy)}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Low">Low</SelectItem>
+                <SelectItem value="Medium">Medium</SelectItem>
+                <SelectItem value="High">High</SelectItem>
+              </SelectContent>
+            </Select>
+          </label>
+          <Button size="sm" onClick={() => ask(rejected)} disabled={asking}>
+            {asking ? "Thinking…" : recommendation ? "Ask again" : "Get my next action"}
           </Button>
+          {recommendation?.next_action && (
+            <Button size="sm" variant="outline" onClick={rejectCurrent} disabled={asking}>
+              Not this one
+            </Button>
+          )}
         </div>
+
         {askError ? (
           <p className="mt-3 text-sm text-destructive">{askError}</p>
-        ) : reply ? (
-          <p className="mt-3 whitespace-pre-wrap text-sm">{reply}</p>
+        ) : recommendation ? (
+          <div className="mt-4 space-y-3 text-sm">
+            {recommendation.project_name && (
+              <p>
+                <span className="text-muted-foreground">Project: </span>
+                <span className="font-semibold">{recommendation.project_name}</span>
+              </p>
+            )}
+            {recommendation.next_action && (
+              <p className="text-base font-medium">{recommendation.next_action}</p>
+            )}
+            {recommendation.done_looks_like && (
+              <p>
+                <span className="text-muted-foreground">Done looks like: </span>
+                {recommendation.done_looks_like}
+              </p>
+            )}
+            {recommendation.why && (
+              <p>
+                <span className="text-muted-foreground">Why this: </span>
+                {recommendation.why}
+              </p>
+            )}
+            {recommendation.clarifying_question && (
+              <p className="text-muted-foreground italic">
+                Question for you: {recommendation.clarifying_question}
+              </p>
+            )}
+          </div>
         ) : (
           <p className="mt-3 text-sm text-muted-foreground">
-            {asking ? "Asking for a recommendation…" : "No recommendation yet."}
+            {asking
+              ? "Asking for a recommendation…"
+              : "Set your time and energy, then ask for your next action."}
           </p>
         )}
       </section>
