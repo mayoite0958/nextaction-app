@@ -48,6 +48,9 @@ export function SessionPanel({
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [plusCount, setPlusCount] = useState(0);
   const [result, setResult] = useState<SessionEndOutput | null>(null);
+  const [notesKept, setNotesKept] = useState<boolean[]>([]);
+  const [tasksKept, setTasksKept] = useState<boolean[]>([]);
+  const [markTaskDone, setMarkTaskDone] = useState(false);
   const [busy, setBusy] = useState(false);
   const [startedAt, setStartedAt] = useState<string | null>(null);
   const [taskId, setTaskId] = useState<string | null>(recommendation.task_id);
@@ -136,13 +139,22 @@ export function SessionPanel({
       proj = res.data;
     }
     setProject(proj);
+    const { data: eventRows } = await supabase
+      .from("session_events")
+      .select("type,text,ts")
+      .eq("session_id", sessionId)
+      .order("ts", { ascending: true });
+    const events = (eventRows ?? []).map((e) => ({ type: e.type, text: e.text, time: e.ts }));
     let out: SessionEndOutput | null = null;
     try {
-      out = await reportSessionEnd({ project: proj, action, outcome, where_stopped: stopped });
+      out = await reportSessionEnd({ project: proj, action, outcome, where_stopped: stopped, events });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not reach n8n");
     }
     setResult(out);
+    setNotesKept((out?.notes ?? []).map(() => true));
+    setTasksKept((out?.new_tasks ?? []).map(() => true));
+    setMarkTaskDone(out?.task_done === true);
     const suggested = new Set((out?.milestone_suggestions ?? []).map((t) => t.trim().toLowerCase()));
     setMilestones(
       parseMilestones(proj?.milestones).map((m) => ({
@@ -187,8 +199,25 @@ export function SessionPanel({
     if (result?.next_likely_action) update.next_likely_action = result.next_likely_action;
     if (result?.blocker) update.blocker = result.blocker;
     const { error } = await supabase.from("projects").update(update).eq("id", project.id);
+    if (error) { setBusy(false); toast.error(error.message); return; }
+    const keptNotes = (result?.notes ?? []).filter((_, i) => notesKept[i]);
+    if (keptNotes.length) {
+      await supabase.from("project_notes").insert(
+        keptNotes.map((text) => ({ project_id: project.id, type: "note", text, source: "session" })),
+      );
+    }
+    const keptTasks = (result?.new_tasks ?? []).filter((_, i) => tasksKept[i]);
+    if (keptTasks.length) {
+      await supabase.from("tasks").insert(
+        keptTasks.map((t) => ({ project_id: project.id, title: t.title, est_minutes: t.est_minutes, source: "ai" })),
+      );
+      void qc.invalidateQueries({ queryKey: ["tasks"] });
+    }
+    if (markTaskDone && taskId) {
+      await supabase.from("tasks").update({ status: "done", done_at: new Date().toISOString() }).eq("id", taskId);
+      void qc.invalidateQueries({ queryKey: ["tasks"] });
+    }
     setBusy(false);
-    if (error) { toast.error(error.message); return; }
     toast.success("Project updated.");
     await qc.invalidateQueries({ queryKey: ["projects"] });
     await qc.invalidateQueries({ queryKey: ["project", project.id] });
@@ -311,11 +340,38 @@ export function SessionPanel({
           </span>
         </div>
       )}
+      {project && (result?.notes.length || result?.new_tasks.length || (taskId && result?.task_done)) ? (
+        <div className="space-y-2 text-sm">
+          <p className="text-muted-foreground">Suggested by your coach — untick anything you don't want</p>
+          {(result?.notes ?? []).map((n, i) => (
+            <CheckRow key={`n${i}`} checked={notesKept[i] ?? true} onToggle={() => setNotesKept((k) => k.map((v, j) => (j === i ? !v : v)))} label={`📝 ${n}`} />
+          ))}
+          {(result?.new_tasks ?? []).map((t, i) => (
+            <CheckRow key={`t${i}`} checked={tasksKept[i] ?? true} onToggle={() => setTasksKept((k) => k.map((v, j) => (j === i ? !v : v)))} label={`✅ New task: ${t.title}${t.est_minutes ? ` (~${t.est_minutes} min)` : ""}`} />
+          ))}
+          {taskId && result?.task_done && (
+            <CheckRow checked={markTaskDone} onToggle={() => setMarkTaskDone((v) => !v)} label="✔ Mark task done" />
+          )}
+        </div>
+      ) : null}
       {nextMove}
       <Button size="sm" onClick={saveProgress} disabled={busy}>
         {project ? "Save to project" : "Done"}
       </Button>
     </div>
+  );
+}
+
+function CheckRow({ checked, onToggle, label }: { checked: boolean; onToggle: () => void; label: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className={`flex w-full items-center gap-3 rounded-md border p-2.5 text-left ${checked ? "border-primary bg-primary/10" : "border-border"}`}
+    >
+      <span>{checked ? "☑" : "☐"}</span>
+      <span className="flex-1">{label}</span>
+    </button>
   );
 }
 
