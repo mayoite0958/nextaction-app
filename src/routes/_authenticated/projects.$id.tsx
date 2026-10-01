@@ -160,6 +160,7 @@ function ProjectPage() {
     toast.success("Project saved.");
     await qc.invalidateQueries({ queryKey: ["projects"] });
     await qc.invalidateQueries({ queryKey: ["project", id] });
+    await qc.invalidateQueries({ queryKey: ["project_buckets"] });
     if (isNew) navigate({ to: "/projects/$id", params: { id: res.data.id }, replace: true });
   }
 
@@ -248,13 +249,36 @@ function ProjectPage() {
             <Input type="date" value={form.deadline} onChange={(e) => set("deadline", e.target.value)} />
           </Field>
           <Field label="Category">
-            <Select value={form.bucket} onValueChange={(v) => set("bucket", v)}>
+            <Select
+              value={addingCategory ? "__new" : form.bucket}
+              onValueChange={(v) => {
+                if (v === "__new") {
+                  setAddingCategory(true);
+                } else {
+                  setAddingCategory(false);
+                  set("bucket", v);
+                }
+              }}
+            >
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="urgent">{urgentLabel}</SelectItem>
-                <SelectItem value="long_term">{longtermLabel}</SelectItem>
+                <SelectItem value="urgent">{bucketLabel(settings, "urgent")}</SelectItem>
+                <SelectItem value="long_term">{bucketLabel(settings, "long_term")}</SelectItem>
+                {customBuckets.map((b) => (
+                  <SelectItem key={b} value={b}>{bucketLabel(settings, b)}</SelectItem>
+                ))}
+                <SelectItem value="__new">+ New category…</SelectItem>
               </SelectContent>
             </Select>
+            {addingCategory && (
+              <Input
+                className="mt-2"
+                placeholder="Category name, e.g. Health & family"
+                value={newCategory}
+                onChange={(e) => setNewCategory(e.target.value)}
+                autoFocus
+              />
+            )}
           </Field>
           <Field label="Status">
             <Select value={form.status} onValueChange={(v) => set("status", v)}>
