@@ -11,7 +11,8 @@
 
 ## Project rules
 
-- Data access runs through the browser Supabase client with RLS (no server functions): every table is user-scoped by `auth.uid()`, so the client is already the safe path.
+- Data access runs through the browser Supabase client with RLS: every table is user-scoped by `auth.uid()`, so the client is already the safe path.
+- AI calls go through auth-protected server functions (`*.functions.ts` + `requireSupabaseAuth`) so the AI key stays server-side; the client gathers data and sends it.
 - Signed-in pages live under `src/routes/_authenticated/`; `/` and `/auth` are public.
 - Role templates, timezone list and date helpers live in `src/lib/nextaction.ts` so onboarding and settings stay in sync.
 - Never create or alter database tables in this project; the schema is owned by the user.
