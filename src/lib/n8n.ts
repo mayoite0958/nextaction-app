@@ -254,6 +254,9 @@ export type SessionEndOutput = {
   blocker: string | null;
   next_move: string | null;
   milestone_suggestions: string[];
+  notes: string[];
+  new_tasks: { title: string; est_minutes: number | null }[];
+  task_done: boolean;
 };
 
 /** Tell n8n a session ended and return its parsed output. */
@@ -262,6 +265,7 @@ export async function reportSessionEnd(body: {
   action: string | null;
   outcome: string;
   where_stopped: string;
+  events: { type: string | null; text: string | null; time: string | null }[];
 }): Promise<SessionEndOutput> {
   const res = await callN8nWebhook(N8N_END_SESSION_URL, { body });
   const o = await readOutput(res);
