@@ -194,6 +194,9 @@ function ProjectPage() {
   });
   const progress = computeProgress(typeFields(), doneThisWeek);
   const [planning, setPlanning] = useState(false);
+  const [firstTasks, setFirstTasks] = useState<
+    { title: string; est_minutes: string; energy: string; kept: boolean }[]
+  >([]);
   async function generate() {
     if (!form.name.trim()) { toast.error("Give the project a name first."); return; }
     setPlanning(true);
@@ -204,6 +207,14 @@ function ProjectPage() {
         done_definition: plan.done_definition ?? f.done_definition,
         milestones: plan.milestones.length ? plan.milestones : f.milestones,
       }));
+      setFirstTasks(
+        plan.first_tasks.map((t) => ({
+          title: t.title,
+          est_minutes: t.est_minutes != null ? String(t.est_minutes) : "",
+          energy: t.energy ?? "",
+          kept: true,
+        })),
+      );
       toast.success("Milestones drafted — edit them, then save.");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not reach n8n");
