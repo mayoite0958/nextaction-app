@@ -1,4 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
+import { MicButton } from "@/components/MicButton";
+import { ActiveSession } from "@/components/ActiveSession";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -47,10 +49,33 @@ export function SessionPanel({
   const [plusCount, setPlusCount] = useState(0);
   const [result, setResult] = useState<SessionEndOutput | null>(null);
   const [busy, setBusy] = useState(false);
+  const [startedAt, setStartedAt] = useState<string | null>(null);
+  const [taskId, setTaskId] = useState<string | null>(recommendation.task_id);
 
   async function start() {
     setBusy(true);
     const now = new Date().toISOString();
+    let tid = recommendation.task_id;
+    if (!tid && recommendation.new_task_title && recommendation.project_id) {
+      const t = await supabase
+        .from("tasks")
+        .insert({
+          project_id: recommendation.project_id,
+          title: recommendation.new_task_title,
+          est_minutes: recommendation.est_minutes,
+          energy,
+          status: "doing",
+          source: "ai",
+        })
+        .select("id")
+        .single();
+      if (t.error) { setBusy(false); toast.error(t.error.message); return; }
+      tid = t.data.id;
+    } else if (tid) {
+      await supabase.from("tasks").update({ status: "doing" }).eq("id", tid);
+    }
+    setTaskId(tid);
+    void qc.invalidateQueries({ queryKey: ["tasks"] });
     const { data, error } = await supabase
       .from("sessions")
       .insert({
@@ -64,12 +89,14 @@ export function SessionPanel({
         energy,
         decision_started_at: now,
         work_started_at: now,
+        task_id: tid,
       })
       .select("id")
       .single();
     setBusy(false);
     if (error) { toast.error(error.message); return; }
     setSessionId(data.id);
+    setStartedAt(now);
     setStage("working");
   }
 
@@ -96,6 +123,10 @@ export function SessionPanel({
       setBusy(false);
       toast.error(error.message);
       return;
+    }
+    if (taskId && outcome === "Completed") {
+      await supabase.from("tasks").update({ status: "done", done_at: new Date().toISOString() }).eq("id", taskId);
+      void qc.invalidateQueries({ queryKey: ["tasks"] });
     }
     void qc.invalidateQueries({ queryKey: ["recent_summary"] });
     void qc.invalidateQueries({ queryKey: ["week_counts"] });
@@ -188,12 +219,14 @@ export function SessionPanel({
       </Button>
     );
 
-  if (stage === "working")
+  if (stage === "working" && sessionId && startedAt)
     return (
-      <div className="flex flex-wrap items-center gap-3">
-        <span className="text-sm text-primary">Session in progress…</span>
-        <Button size="sm" onClick={() => setStage("ending")}>End session</Button>
-      </div>
+      <ActiveSession
+        sessionId={sessionId}
+        startedAt={startedAt}
+        projectId={recommendation.project_id}
+        onEnd={() => setStage("ending")}
+      />
     );
 
   if (stage === "ending")
@@ -317,49 +350,3 @@ function Chips({
   );
 }
 
-type SpeechRec = {
-  lang: string;
-  interimResults: boolean;
-  onresult: ((e: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
-  onend: (() => void) | null;
-  onerror: (() => void) | null;
-  start: () => void;
-  stop: () => void;
-};
-
-function MicButton({ onText }: { onText: (t: string) => void }) {
-  const [supported, setSupported] = useState(false);
-  const [listening, setListening] = useState(false);
-  const rec = useRef<SpeechRec | null>(null);
-
-  useEffect(() => {
-    const w = window as unknown as { SpeechRecognition?: new () => SpeechRec; webkitSpeechRecognition?: new () => SpeechRec };
-    setSupported(!!(w.SpeechRecognition ?? w.webkitSpeechRecognition));
-  }, []);
-
-  function toggle() {
-    if (listening) { rec.current?.stop(); return; }
-    const w = window as unknown as { SpeechRecognition?: new () => SpeechRec; webkitSpeechRecognition?: new () => SpeechRec };
-    const Ctor = w.SpeechRecognition ?? w.webkitSpeechRecognition;
-    if (!Ctor) return;
-    const r = new Ctor();
-    r.lang = navigator.language || "en-US";
-    r.interimResults = false;
-    r.onresult = (e) => {
-      const text = Array.from(e.results).map((res) => res[0]?.transcript ?? "").join(" ").trim();
-      if (text) onText(text);
-    };
-    r.onend = () => setListening(false);
-    r.onerror = () => { setListening(false); toast.error("Couldn't hear that — try again or type it."); };
-    rec.current = r;
-    setListening(true);
-    r.start();
-  }
-
-  if (!supported) return null;
-  return (
-    <Button type="button" variant={listening ? "default" : "outline"} onClick={toggle} aria-label="Speak instead of typing">
-      {listening ? "■" : "🎤"}
-    </Button>
-  );
-}

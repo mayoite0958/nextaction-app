@@ -100,6 +100,14 @@ function Today() {
 
   function rejectCurrent() {
     if (!recommendation?.next_action) return;
+    void supabase.from("sessions").insert({
+      status: "rejected",
+      project_id: recommendation.project_id,
+      project_name: recommendation.project_name,
+      recommended_action: recommendation.next_action,
+      time_available_min: Math.max(1, Number.parseInt(timeMin, 10) || 30),
+      energy,
+    });
     const next = [...rejected, recommendation.next_action];
     setRejected(next);
     void ask(next);
@@ -188,6 +196,7 @@ function Today() {
             {recommendation.next_action && (
               <p className="text-base font-medium">{recommendation.next_action}</p>
             )}
+            <RecTask rec={recommendation} />
             {recommendation.done_looks_like && (
               <p>
                 <span className="text-muted-foreground">Done looks like: </span>
@@ -322,5 +331,31 @@ function Today() {
         </div>
       )}
     </AppShell>
+  );
+}
+
+function RecTask({ rec }: { rec: Recommendation }) {
+  const q = useQuery({
+    queryKey: ["task", rec.task_id],
+    enabled: !!rec.task_id,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("tasks").select("*").eq("id", rec.task_id!).maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+  const title = rec.task_id ? q.data?.title : rec.new_task_title;
+  if (!title) return null;
+  const est = rec.task_id ? q.data?.est_minutes : rec.est_minutes;
+  return (
+    <div className="rounded-md border border-border p-3">
+      <p className="text-xs uppercase tracking-widest text-muted-foreground">
+        {rec.task_id ? "Task" : "New task (added when you start)"}
+      </p>
+      <p className="mt-1 font-medium">
+        {title}
+        {est ? <span className="ml-2 text-sm text-muted-foreground">~{est} min</span> : null}
+      </p>
+    </div>
   );
 }
