@@ -128,12 +128,37 @@ export async function requestRecommendation(input: {
   };
 }
 
-/** Tell n8n a session ended; returns its suggested progress_percent (or null). */
-export async function reportSessionEnd(body: Record<string, unknown>): Promise<number | null> {
-  const res = await callN8nWebhook(N8N_END_SESSION_URL, { body: { mode: "E", ...body } });
-  const output = await readOutput(res);
-  const n = Number(output["progress_percent"]);
-  return Number.isFinite(n) ? Math.min(100, Math.max(0, Math.round(n))) : null;
+export type SessionEndOutput = {
+  progress_percent: number | null;
+  progress_summary: string | null;
+  last_meaningful_action: string | null;
+  next_likely_action: string | null;
+  blocker: string | null;
+  next_move: string | null;
+};
+
+/** Tell n8n a session ended and return its parsed output. */
+export async function reportSessionEnd(body: {
+  project: ProjectRow | null;
+  action: string | null;
+  outcome: string;
+  where_stopped: string;
+}): Promise<SessionEndOutput> {
+  const res = await callN8nWebhook(N8N_END_SESSION_URL, { body });
+  const o = await readOutput(res);
+  const str = (v: unknown) => (typeof v === "string" && v.trim() ? v : null);
+  const n = Number(o["progress_percent"]);
+  return {
+    progress_percent:
+      o["progress_percent"] != null && Number.isFinite(n)
+        ? Math.min(100, Math.max(0, Math.round(n)))
+        : null,
+    progress_summary: str(o["progress_summary"]),
+    last_meaningful_action: str(o["last_meaningful_action"]),
+    next_likely_action: str(o["next_likely_action"]),
+    blocker: str(o["blocker"]),
+    next_move: str(o["next_move"]),
+  };
 }
 
 async function readOutput(res: Response): Promise<Record<string, unknown>> {
