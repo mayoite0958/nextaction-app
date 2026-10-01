@@ -62,6 +62,26 @@ export const TIMEZONES = [
   "UTC",
 ];
 
+export function slugifyBucket(name: string): string {
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+export function bucketLabel(
+  settings:
+    | { bucket_urgent_label?: string | null; bucket_longterm_label?: string | null }
+    | null
+    | undefined,
+  bucket: string | null | undefined,
+): string {
+  if (bucket === "urgent") return settings?.bucket_urgent_label ?? "Urgent";
+  if (!bucket || bucket === "long_term") return settings?.bucket_longterm_label ?? "Long-term";
+  return bucket.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 export function daysLeft(deadline: string | null): number | null {
   if (!deadline) return null;
   const today = new Date();
