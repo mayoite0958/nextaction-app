@@ -87,6 +87,15 @@ function ProjectPage() {
     },
   });
 
+  const bucketsQuery = useQuery({
+    queryKey: ["project_buckets"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("projects").select("bucket");
+      if (error) throw error;
+      return [...new Set((data ?? []).map((r) => r.bucket).filter((b): b is string => !!b))];
+    },
+  });
+
   const sessionsQuery = useQuery({
     queryKey: ["project_sessions", id],
     enabled: !isNew,
