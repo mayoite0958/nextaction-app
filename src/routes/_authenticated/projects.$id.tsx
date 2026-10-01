@@ -135,13 +135,13 @@ function ProjectPage() {
   });
 
   async function save() {
-    if (!form.name.trim()) return toast.error("Give the project a name.");
+    if (!form.name.trim()) { toast.error("Give the project a name."); return; }
     setSaving(true);
     const res = isNew
       ? await supabase.from("projects").insert(payload()).select("id").single()
       : await supabase.from("projects").update(payload()).eq("id", id).select("id").single();
     setSaving(false);
-    if (res.error) return toast.error(res.error.message);
+    if (res.error) { toast.error(res.error.message); return; }
     toast.success("Project saved.");
     await qc.invalidateQueries({ queryKey: ["projects"] });
     await qc.invalidateQueries({ queryKey: ["project", id] });
@@ -159,7 +159,7 @@ function ProjectPage() {
       .update({ last_meaningful_action: update.trim(), last_worked_at: now, progress_summary: summary })
       .eq("id", id);
     setSaving(false);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     setUpdate("");
     toast.success("Progress logged.");
     await qc.invalidateQueries({ queryKey: ["project", id] });
@@ -169,7 +169,7 @@ function ProjectPage() {
   async function remove() {
     if (!confirm("Delete this project? This can't be undone.")) return;
     const { error } = await supabase.from("projects").delete().eq("id", id);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     await qc.invalidateQueries({ queryKey: ["projects"] });
     navigate({ to: "/today" });
   }
