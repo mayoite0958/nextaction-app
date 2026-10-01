@@ -18,7 +18,7 @@ export function WeeklyReview({ projectId }: { projectId: string }) {
       const since = new Date(Date.now() - 7 * 864e5).toISOString();
       const [project, sessions, notes, tasks, settings] = await Promise.all([
         supabase.from("projects").select("*").eq("id", projectId).maybeSingle(),
-        supabase.from("sessions").select("*").eq("project_id", projectId).gte("started_at", since).order("started_at", { ascending: false }).limit(40),
+        supabase.from("sessions").select("*").eq("project_id", projectId).gte("created_at", since).order("created_at", { ascending: false }).limit(40),
         supabase.from("project_notes").select("*").eq("project_id", projectId).gte("created_at", since).order("created_at", { ascending: false }).limit(30),
         supabase.from("tasks").select("*").eq("project_id", projectId).limit(60),
         supabase.from("user_settings").select("*").maybeSingle(),
@@ -42,7 +42,10 @@ export function WeeklyReview({ projectId }: { projectId: string }) {
       });
       setReview(out);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Couldn't generate the summary.");
+      console.error("weekly review failed", e);
+      const msg =
+        e instanceof Error ? e.message : e && typeof e === "object" && "message" in e ? String((e as { message: unknown }).message) : "";
+      setError(msg ? `Couldn't generate the summary: ${msg}` : "Couldn't generate the summary.");
     } finally {
       setLoading(false);
     }
