@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
@@ -209,9 +209,14 @@ function Today() {
         )}
       </section>
 
-      <h2 className="mt-10 text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-        Active projects
-      </h2>
+      <div className="mt-10 flex items-center justify-between">
+        <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+          Active projects
+        </h2>
+        <Button size="sm" variant="outline" asChild>
+          <Link to="/projects/$id" params={{ id: "new" }}>+ Add project</Link>
+        </Button>
+      </div>
 
       {projectsQuery.isLoading ? (
         <p className="mt-4 text-sm text-muted-foreground">Loading projects…</p>
@@ -225,7 +230,12 @@ function Today() {
             const left = daysLeft(p.deadline);
             const urgentBucket = p.bucket !== "long_term";
             return (
-              <article key={p.id} className="panel flex flex-col gap-3 p-5">
+              <Link
+                key={p.id}
+                to="/projects/$id"
+                params={{ id: p.id }}
+                className="panel flex flex-col gap-3 p-5 transition-colors hover:border-primary"
+              >
                 <div className="flex items-start justify-between gap-3">
                   <h3 className="font-display text-lg font-semibold leading-tight">{p.name}</h3>
                   <Badge
@@ -277,7 +287,7 @@ function Today() {
                     <dd>{relativeTime(p.last_worked_at)}</dd>
                   </div>
                 </dl>
-              </article>
+              </Link>
             );
           })}
         </div>
