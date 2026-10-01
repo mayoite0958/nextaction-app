@@ -249,6 +249,26 @@ function ProjectPage() {
       : await supabase.from("projects").update(payload()).eq("id", id).select("id").single();
     setSaving(false);
     if (res.error) { toast.error(res.error.message); return; }
+    const kept = firstTasks.filter((t) => t.kept && t.title.trim());
+    if (kept.length) {
+      const firstMilestone = form.milestones.find((m) => m.title.trim())?.title.trim() ?? null;
+      const { error: tasksError } = await supabase.from("tasks").insert(
+        kept.map((t) => ({
+          project_id: res.data.id,
+          milestone: firstMilestone,
+          title: t.title.trim(),
+          est_minutes: numOrNull(t.est_minutes),
+          energy: t.energy.trim() || null,
+          status: "todo",
+          source: "ai",
+        })),
+      );
+      if (tasksError) toast.error(tasksError.message);
+      else {
+        setFirstTasks([]);
+        void qc.invalidateQueries({ queryKey: ["tasks"] });
+      }
+    }
     toast.success("Project saved.");
     await qc.invalidateQueries({ queryKey: ["projects"] });
     await qc.invalidateQueries({ queryKey: ["project", id] });
@@ -455,6 +475,52 @@ function ProjectPage() {
             >
               + Add milestone
             </Button>
+            {firstTasks.length > 0 && (
+              <div className="grid gap-2 border-t border-border pt-3">
+                <span className="text-sm text-muted-foreground">
+                  First tasks — untick any you don't want; they're added when you save
+                </span>
+                {firstTasks.map((t, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 accent-primary"
+                      checked={t.kept}
+                      onChange={(e) =>
+                        setFirstTasks((ts) => ts.map((x, j) => (j === i ? { ...x, kept: e.target.checked } : x)))
+                      }
+                      aria-label="Add this task"
+                    />
+                    <Input
+                      value={t.title}
+                      placeholder="Task"
+                      onChange={(e) =>
+                        setFirstTasks((ts) => ts.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))
+                      }
+                    />
+                    <Input
+                      type="number"
+                      className="w-20"
+                      placeholder="min"
+                      value={t.est_minutes}
+                      onChange={(e) =>
+                        setFirstTasks((ts) => ts.map((x, j) => (j === i ? { ...x, est_minutes: e.target.value } : x)))
+                      }
+                      aria-label="Estimated minutes"
+                    />
+                    <Input
+                      className="w-24"
+                      placeholder="Energy"
+                      value={t.energy}
+                      onChange={(e) =>
+                        setFirstTasks((ts) => ts.map((x, j) => (j === i ? { ...x, energy: e.target.value } : x)))
+                      }
+                      aria-label="Energy"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
         {form.project_type === "countable" && (
