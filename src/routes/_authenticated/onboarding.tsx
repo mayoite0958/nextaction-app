@@ -16,7 +16,6 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { COACHING_TONES, ROLE_TEMPLATES, TIMEZONES } from "@/lib/nextaction";
-import { sendToN8n } from "@/lib/n8n";
 
 export const Route = createFileRoute("/_authenticated/onboarding")({
   head: () => ({
@@ -131,7 +130,6 @@ function Onboarding() {
       if (projectsError) throw projectsError;
 
       toast.success("You're set up.");
-      sendToN8n("onboarding_completed").catch((e) => console.error("n8n:", e));
       navigate({ to: "/today", replace: true });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not save your setup");

@@ -1,4 +1,19 @@
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
+
+type SettingsRow = Database["public"]["Tables"]["user_settings"]["Row"];
+type ProjectRow = Database["public"]["Tables"]["projects"]["Row"];
+
+export type Energy = "Low" | "Medium" | "High";
+
+export type Recommendation = {
+  project_id: string | null;
+  project_name: string | null;
+  next_action: string | null;
+  done_looks_like: string | null;
+  why: string | null;
+  clarifying_question: string | null;
+};
 
 /**
  * Call an n8n webhook with the current Supabase session's access token
@@ -44,34 +59,76 @@ export async function callN8nWebhook(
 /** n8n webhook that receives app events. Swap to the Production URL when live. */
 export const N8N_RECOMMEND_URL = "https://kaalpanikkala.app.n8n.cloud/webhook-test/recommend";
 
-export type N8nEvent = "onboarding_completed" | "today_opened" | "next_action_requested" | "settings_saved";
+const PROJECT_FIELDS =
+  "id,name,goal,deadline,bucket,value_score,progress_summary,blocker,last_meaningful_action,next_likely_action,last_worked_at";
 
-/** Load the user's settings + active projects and send them to n8n. Returns n8n's reply as text. */
-export async function sendToN8n(event: N8nEvent): Promise<string> {
-  const [{ data: userData }, { data: settings }, { data: projects }] = await Promise.all([
-    supabase.auth.getUser(),
-    supabase.from("user_settings").select("*").maybeSingle(),
-    supabase.from("projects").select("*").eq("status", "active"),
-  ]);
+type ProjectSlice = Pick<
+  ProjectRow,
+  | "id"
+  | "name"
+  | "goal"
+  | "deadline"
+  | "bucket"
+  | "value_score"
+  | "progress_summary"
+  | "blocker"
+  | "last_meaningful_action"
+  | "next_likely_action"
+  | "last_worked_at"
+>;
+
+/**
+ * Ask n8n for the user's next action. Sends mode "C" with the user's
+ * settings, active projects, available time, energy, and any actions
+ * they already rejected. Returns n8n's parsed recommendation.
+ */
+export async function requestRecommendation(input: {
+  time_min: number;
+  energy: Energy;
+  rejected_actions: string[];
+}): Promise<Recommendation> {
+  const [{ data: settings, error: settingsError }, { data: projects, error: projectsError }] =
+    await Promise.all([
+      supabase.from("user_settings").select("*").maybeSingle(),
+      supabase.from("projects").select(PROJECT_FIELDS).eq("status", "active"),
+    ]);
+  if (settingsError) throw settingsError;
+  if (projectsError) throw projectsError;
+
   const res = await callN8nWebhook(N8N_RECOMMEND_URL, {
     body: {
-      event,
-      sent_at: new Date().toISOString(),
-      user_id: userData.user?.id ?? null,
-      email: userData.user?.email ?? null,
-      settings,
-      projects: projects ?? [],
+      mode: "C",
+      time_min: input.time_min,
+      energy: input.energy,
+      rejected_actions: input.rejected_actions,
+      settings: settings ?? null,
+      projects: (projects ?? []) as ProjectSlice[],
     },
   });
+
   const text = await res.text();
   if (!res.ok) throw new Error(`n8n replied ${res.status}: ${text.slice(0, 200)}`);
+
+  let parsed: unknown;
   try {
-    const json = JSON.parse(text);
-    const pick = Array.isArray(json) ? json[0] : json;
-    if (typeof pick === "string") return pick;
-    const msg = pick?.recommendation ?? pick?.next_action ?? pick?.message ?? pick?.output ?? pick?.text;
-    return typeof msg === "string" ? msg : JSON.stringify(json, null, 2);
+    parsed = JSON.parse(text);
   } catch {
-    return text;
+    throw new Error("n8n did not reply with JSON.");
   }
+
+  const root = Array.isArray(parsed) ? parsed[0] : parsed;
+  const output = (root as { output?: Record<string, unknown> } | null)?.output;
+  if (!output || typeof output !== "object") {
+    throw new Error("n8n's reply had no output object.");
+  }
+
+  const str = (v: unknown) => (typeof v === "string" && v.trim() ? v : null);
+  return {
+    project_id: str(output["project_id"]),
+    project_name: str(output["project_name"]),
+    next_action: str(output["next_action"]),
+    done_looks_like: str(output["done_looks_like"]),
+    why: str(output["why"]),
+    clarifying_question: str(output["clarifying_question"]),
+  };
 }

@@ -29,7 +29,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { COACHING_TONES, ROLE_TEMPLATES, TIMEZONES } from "@/lib/nextaction";
-import { sendToN8n } from "@/lib/n8n";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({
@@ -149,7 +148,6 @@ function SettingsPage() {
       if (error) throw error;
       await queryClient.invalidateQueries({ queryKey: ["user_settings"] });
       toast.success("Settings saved.");
-      sendToN8n("settings_saved").catch((e) => console.error("n8n:", e));
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not save settings");
     } finally {
