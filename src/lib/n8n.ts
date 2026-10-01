@@ -288,6 +288,23 @@ export async function reportSessionEnd(body: {
           )
           .filter(Boolean)
       : [],
+    notes: Array.isArray(o["notes"])
+      ? (o["notes"] as unknown[]).map((n) => String(n ?? "").trim()).filter(Boolean)
+      : [],
+    new_tasks: Array.isArray(o["new_tasks"])
+      ? (o["new_tasks"] as unknown[])
+          .map((t) => {
+            if (typeof t === "string") return { title: t.trim(), est_minutes: null };
+            const r = (t ?? {}) as Record<string, unknown>;
+            const em = Number(r["est_minutes"]);
+            return {
+              title: String(r["title"] ?? "").trim(),
+              est_minutes: Number.isFinite(em) && em > 0 ? Math.round(em) : null,
+            };
+          })
+          .filter((t) => t.title)
+      : [],
+    task_done: o["task_done"] === true,
   };
 }
 
