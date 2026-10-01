@@ -5,9 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { supabase } from "@/integrations/supabase/client";
-import { reportSessionEnd, type Energy, type Recommendation } from "@/lib/n8n";
+import type { Database } from "@/integrations/supabase/types";
+import {
+  reportSessionEnd,
+  type Energy,
+  type Recommendation,
+  type SessionEndOutput,
+} from "@/lib/n8n";
 
-type Stage = "idle" | "working" | "ending" | "review";
+type Stage = "idle" | "working" | "ending" | "review" | "done";
 
 export function SessionPanel({
   recommendation,
@@ -25,8 +31,11 @@ export function SessionPanel({
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [outcome, setOutcome] = useState("");
   const [whereStopped, setWhereStopped] = useState("");
+  const [rightTask, setRightTask] = useState(3);
+  const [lessStuck, setLessStuck] = useState(3);
+  const [milestone, setMilestone] = useState(false);
   const [progress, setProgress] = useState(currentProgress ?? 0);
-  const [suggested, setSuggested] = useState<number | null>(null);
+  const [result, setResult] = useState<SessionEndOutput | null>(null);
   const [busy, setBusy] = useState(false);
 
   async function start() {
@@ -56,63 +65,76 @@ export function SessionPanel({
 
   async function end() {
     if (!sessionId) return;
+    if (!outcome) { toast.error("Pick an outcome."); return; }
     setBusy(true);
-    const endedAt = new Date().toISOString();
     const { error } = await supabase
       .from("sessions")
       .update({
         status: "done",
-        ended_at: endedAt,
-        outcome: outcome.trim() || null,
+        ended_at: new Date().toISOString(),
+        outcome,
         where_stopped: whereStopped.trim() || null,
+        right_task: rightTask,
+        less_stuck: lessStuck,
+        milestone_moved: milestone,
       })
       .eq("id", sessionId);
     if (error) {
       setBusy(false);
-      { toast.error(error.message); return; }
+      toast.error(error.message);
+      return;
     }
+    void qc.invalidateQueries({ queryKey: ["recent_summary"] });
     try {
-      const pct = await reportSessionEnd({
-        session_id: sessionId,
-        project_id: recommendation.project_id,
-        project_name: recommendation.project_name,
+      let project = null;
+      if (recommendation.project_id) {
+        const res = await supabase.from("projects").select("*").eq("id", recommendation.project_id).maybeSingle();
+        project = res.data;
+      }
+      const out = await reportSessionEnd({
+        project,
         action: recommendation.next_action,
-        outcome: outcome.trim(),
+        outcome,
         where_stopped: whereStopped.trim(),
-        current_progress_percent: currentProgress,
       });
-      setSuggested(pct);
-      if (pct !== null) setProgress(pct);
+      setResult(out);
+      setProgress(out.progress_percent ?? project?.progress_percent ?? currentProgress ?? 0);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not reach n8n");
+      setResult(null);
     }
     setBusy(false);
     setStage("review");
-    void qc.invalidateQueries({ queryKey: ["recent_summary"] });
   }
 
   async function saveProgress() {
     if (!recommendation.project_id) {
-      setStage("idle");
+      setStage("done");
       return;
     }
     setBusy(true);
-    const { error } = await supabase
-      .from("projects")
-      .update({
-        progress_percent: progress,
-        last_worked_at: new Date().toISOString(),
-        ...(outcome.trim() ? { last_meaningful_action: outcome.trim() } : {}),
-      })
-      .eq("id", recommendation.project_id);
+    const update: Database["public"]["Tables"]["projects"]["Update"] = {
+      progress_percent: progress,
+      last_worked_at: new Date().toISOString(),
+    };
+    if (result?.progress_summary) update.progress_summary = result.progress_summary;
+    if (result?.last_meaningful_action) update.last_meaningful_action = result.last_meaningful_action;
+    if (result?.next_likely_action) update.next_likely_action = result.next_likely_action;
+    if (result?.blocker) update.blocker = result.blocker;
+    const { error } = await supabase.from("projects").update(update).eq("id", recommendation.project_id);
     setBusy(false);
     if (error) { toast.error(error.message); return; }
-    toast.success("Progress saved.");
+    toast.success("Project updated.");
     await qc.invalidateQueries({ queryKey: ["projects"] });
-    setStage("idle");
-    setOutcome("");
-    setWhereStopped("");
+    setStage("done");
   }
+
+  const nextMove = result?.next_move ? (
+    <div className="rounded-md bg-muted p-3 text-sm">
+      <p className="text-muted-foreground">Your next move when you come back</p>
+      <p className="mt-1 font-medium">{result.next_move}</p>
+    </div>
+  ) : null;
 
   if (stage === "idle")
     return (
@@ -131,27 +153,72 @@ export function SessionPanel({
 
   if (stage === "ending")
     return (
-      <div className="space-y-2">
-        <Input placeholder="What did you get done?" value={outcome} onChange={(e) => setOutcome(e.target.value)} />
-        <Input placeholder="Where did you stop?" value={whereStopped} onChange={(e) => setWhereStopped(e.target.value)} />
+      <div className="space-y-4 rounded-md border border-border p-4">
+        <Choice
+          label="Outcome"
+          options={["Completed", "Materially advanced", "Not really"]}
+          value={outcome}
+          onChange={setOutcome}
+        />
+        <label className="flex flex-col gap-1.5 text-sm">
+          <span className="text-muted-foreground">Where did you stop?</span>
+          <Input value={whereStopped} onChange={(e) => setWhereStopped(e.target.value)} />
+        </label>
+        <Choice label="Right task? (1–5)" options={["1", "2", "3", "4", "5"]} value={String(rightTask)} onChange={(v) => setRightTask(Number(v))} />
+        <Choice label="Less stuck? (1–5)" options={["1", "2", "3", "4", "5"]} value={String(lessStuck)} onChange={(v) => setLessStuck(Number(v))} />
+        <Choice label="Milestone moved?" options={["Yes", "No"]} value={milestone ? "Yes" : "No"} onChange={(v) => setMilestone(v === "Yes")} />
         <Button size="sm" onClick={end} disabled={busy}>
-          {busy ? "Finishing…" : "Finish session"}
+          {busy ? "Finishing…" : "Submit"}
         </Button>
+      </div>
+    );
+
+  if (stage === "done")
+    return (
+      <div className="space-y-3">
+        <p className="text-sm text-primary">Session saved.</p>
+        {nextMove}
       </div>
     );
 
   return (
     <div className="space-y-3 rounded-md border border-border p-4">
       <p className="text-sm">
-        {suggested !== null
-          ? `n8n estimates this project is now ${suggested}% done. Adjust if needed:`
+        {result?.progress_percent != null
+          ? `n8n estimates this project is now ${result.progress_percent}% done. Adjust if needed:`
           : "How far along is this project now?"}
       </p>
       <p className="font-display text-2xl font-semibold">{progress}%</p>
       <Slider min={0} max={100} step={1} value={[progress]} onValueChange={(v) => setProgress(v[0] ?? 0)} />
+      {nextMove}
       <Button size="sm" onClick={saveProgress} disabled={busy}>
-        {recommendation.project_id ? "Save progress" : "Done"}
+        {recommendation.project_id ? "Save to project" : "Done"}
       </Button>
+    </div>
+  );
+}
+
+function Choice({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  options: string[];
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="space-y-1.5 text-sm">
+      <p className="text-muted-foreground">{label}</p>
+      <div className="flex flex-wrap gap-2">
+        {options.map((o) => (
+          <Button key={o} type="button" size="sm" variant={value === o ? "default" : "outline"} onClick={() => onChange(o)}>
+            {o}
+          </Button>
+        ))}
+      </div>
     </div>
   );
 }
