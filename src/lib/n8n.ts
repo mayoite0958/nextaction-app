@@ -57,7 +57,7 @@ export async function callN8nWebhook(
 }
 
 /** n8n webhook that receives app events. Swap to the Production URL when live. */
-export const N8N_RECOMMEND_URL = "https://kaalpanikkala.app.n8n.cloud/webhook-test/recommend";
+export const N8N_RECOMMEND_URL = "https://vidhikaindustries.app.n8n.cloud/webhook-test/recommend";
 
 const PROJECT_FIELDS =
   "id,name,goal,deadline,bucket,value_score,progress_summary,blocker,last_meaningful_action,next_likely_action,last_worked_at";
