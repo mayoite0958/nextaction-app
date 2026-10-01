@@ -340,6 +340,20 @@ export function SessionPanel({
           </span>
         </div>
       )}
+      {project && (result?.notes.length || result?.new_tasks.length || (taskId && result?.task_done)) ? (
+        <div className="space-y-2 text-sm">
+          <p className="text-muted-foreground">Suggested by your coach — untick anything you don't want</p>
+          {(result?.notes ?? []).map((n, i) => (
+            <CheckRow key={`n${i}`} checked={notesKept[i] ?? true} onToggle={() => setNotesKept((k) => k.map((v, j) => (j === i ? !v : v)))} label={`📝 ${n}`} />
+          ))}
+          {(result?.new_tasks ?? []).map((t, i) => (
+            <CheckRow key={`t${i}`} checked={tasksKept[i] ?? true} onToggle={() => setTasksKept((k) => k.map((v, j) => (j === i ? !v : v)))} label={`✅ New task: ${t.title}${t.est_minutes ? ` (~${t.est_minutes} min)` : ""}`} />
+          ))}
+          {taskId && result?.task_done && (
+            <CheckRow checked={markTaskDone} onToggle={() => setMarkTaskDone((v) => !v)} label="✔ Mark task done" />
+          )}
+        </div>
+      ) : null}
       {nextMove}
       <Button size="sm" onClick={saveProgress} disabled={busy}>
         {project ? "Save to project" : "Done"}
