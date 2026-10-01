@@ -1,13 +1,21 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { SplitBar } from "@/components/SplitBar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { daysLeft, relativeTime } from "@/lib/nextaction";
-import { sendToN8n, type N8nEvent } from "@/lib/n8n";
+import { requestRecommendation, type Energy, type Recommendation } from "@/lib/n8n";
 import type { Database } from "@/integrations/supabase/types";
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"];
@@ -56,16 +64,24 @@ function Today() {
   });
 
   const settings = settingsQuery.data;
-  const [reply, setReply] = useState<string | null>(null);
+  const [recommendation, setRecommendation] = useState<Recommendation | null>(null);
+  const [rejected, setRejected] = useState<string[]>([]);
+  const [timeMin, setTimeMin] = useState("30");
+  const [energy, setEnergy] = useState<Energy>("Medium");
   const [asking, setAsking] = useState(false);
   const [askError, setAskError] = useState<string | null>(null);
-  const sentOnOpen = useRef(false);
 
-  async function ask(event: N8nEvent) {
+  async function ask(rejectedActions: string[]) {
     setAsking(true);
     setAskError(null);
     try {
-      setReply(await sendToN8n(event));
+      setRecommendation(
+        await requestRecommendation({
+          time_min: Math.max(1, Number.parseInt(timeMin, 10) || 30),
+          energy,
+          rejected_actions: rejectedActions,
+        }),
+      );
     } catch (e) {
       setAskError(e instanceof Error ? e.message : "Could not reach n8n");
     } finally {
@@ -73,12 +89,12 @@ function Today() {
     }
   }
 
-  useEffect(() => {
-    if (settings && !sentOnOpen.current) {
-      sentOnOpen.current = true;
-      void ask("today_opened");
-    }
-  }, [settings]);
+  function rejectCurrent() {
+    if (!recommendation?.next_action) return;
+    const next = [...rejected, recommendation.next_action];
+    setRejected(next);
+    void ask(next);
+  }
 
   useEffect(() => {
     if (settingsQuery.isSuccess && !settings) navigate({ to: "/onboarding", replace: true });
