@@ -7,4 +7,4 @@
 - [x] End-session flow: save n8n output.progress_percent with correction slider
 - [x] End-session: send session events; pre-ticked checkboxes for output.notes / output.new_tasks / task_done; save ticked to project_notes + tasks
 - [x] Project form: plan-project output.first_tasks shown as editable ticked list; on save insert ticked into tasks (milestone = first milestone title, status todo, source ai)
-- [ ] All external resource links open in a new tab (Resources, project pages, Today resource card)
+- [x] All external resource links open in a new tab (Resources, project pages, Today resource card)
