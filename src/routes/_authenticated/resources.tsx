@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { classifyResource } from "@/lib/n8n";
-import { youtubeThumb } from "@/lib/youtube";
+import { youtubeThumb, youtubeWatchUrl } from "@/lib/youtube";
 import type { Database } from "@/integrations/supabase/types";
 
 type Resource = Database["public"]["Tables"]["resources"]["Row"];
@@ -156,7 +156,7 @@ function ResourcesPage() {
         groups.map(({ g, items }) => (
           <section key={g} className="mt-8">
             <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">{g}</h2>
-            <ul className="mt-3 space-y-3">
+            <ul className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {items.map((r) =>
                 editing?.id === r.id ? (
                   <li key={r.id} className="panel space-y-2 p-4">
@@ -181,7 +181,7 @@ function ResourcesPage() {
                 ) : (
                   <li key={r.id} className="panel overflow-hidden text-sm">
                     {youtubeThumb(r.url) && (
-                      <a href={r.url!} target="_blank" rel="noreferrer" className="relative block">
+                      <a href={youtubeWatchUrl(r.url!)} target="_blank" rel="noreferrer" className="relative block">
                         <img
                           src={youtubeThumb(r.url)!}
                           alt={r.title ?? "YouTube video"}
@@ -189,11 +189,11 @@ function ResourcesPage() {
                           loading="lazy"
                         />
                         <span className="absolute inset-0 flex items-center justify-center">
-                          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-background/80 text-lg text-primary">▶</span>
+                          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-background/80 text-sm text-primary">▶</span>
                         </span>
                       </a>
                     )}
-                    <div className="flex items-start justify-between gap-3 p-4">
+                    <div className="flex items-start justify-between gap-3 p-3">
                       <div className="min-w-0">
                         <p className="font-medium">{r.title || r.url || r.user_note}</p>
                         {r.problem_helped && <p className="text-muted-foreground">{r.problem_helped}</p>}
