@@ -20,6 +20,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { bucketLabel, daysLeft, relativeTime } from "@/lib/nextaction";
 import { requestRecommendation, type Energy, type Recommendation } from "@/lib/n8n";
 import type { Database } from "@/integrations/supabase/types";
+import { ExternalLink, ResourceThumb } from "@/components/ResourceThumb";
+import { youtubeWatchUrl } from "@/lib/youtube";
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"];
 
@@ -355,9 +357,10 @@ function RecResource({ id }: { id: string | null }) {
         {r.resource_type && <span className="ml-2 text-sm text-muted-foreground">{r.resource_type}</span>}
       </p>
       {r.url && (
-        <a href={r.url} target="_blank" rel="noreferrer" className="text-sm text-primary underline break-all">
-          {r.url}
-        </a>
+        <div className="mt-2 flex items-start gap-3 text-sm">
+          <ResourceThumb url={r.url} title={r.title} />
+          <ExternalLink url={youtubeWatchUrl(r.url)} />
+        </div>
       )}
     </div>
   );
