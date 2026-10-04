@@ -170,10 +170,13 @@ export type Database = {
       }
       resources: {
         Row: {
+          classified: boolean | null
           created_at: string | null
           id: string
           problem_helped: string | null
           project_id: string | null
+          resource_type: string | null
+          source: string | null
           summary: string | null
           title: string | null
           topic: string | null
@@ -183,10 +186,13 @@ export type Database = {
           user_note: string | null
         }
         Insert: {
+          classified?: boolean | null
           created_at?: string | null
           id?: string
           problem_helped?: string | null
           project_id?: string | null
+          resource_type?: string | null
+          source?: string | null
           summary?: string | null
           title?: string | null
           topic?: string | null
@@ -196,10 +202,13 @@ export type Database = {
           user_note?: string | null
         }
         Update: {
+          classified?: boolean | null
           created_at?: string | null
           id?: string
           problem_helped?: string | null
           project_id?: string | null
+          resource_type?: string | null
+          source?: string | null
           summary?: string | null
           title?: string | null
           topic?: string | null
