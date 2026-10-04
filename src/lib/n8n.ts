@@ -16,6 +16,7 @@ export type Recommendation = {
   task_id: string | null;
   new_task_title: string | null;
   est_minutes: number | null;
+  resource_id: string | null;
 };
 
 /**
@@ -68,6 +69,37 @@ export const N8N_END_SESSION_URL =
 /** n8n webhook that drafts a done definition + milestones (production URL). */
 export const N8N_PLAN_PROJECT_URL =
   "https://vidhikaindustries.app.n8n.cloud/webhook/plan-project";
+
+/** n8n webhook that classifies a saved resource (production URL). */
+export const N8N_ADD_RESOURCE_URL = "https://vidhikaindustries.app.n8n.cloud/webhook/add-resource";
+
+export type ResourceClassification = {
+  title: string | null;
+  resource_type: string | null;
+  topic: string | null;
+  problem_helped: string | null;
+  summary: string | null;
+  project_id: string | null;
+};
+
+/** Ask n8n to classify a link the user saved. */
+export async function classifyResource(body: {
+  url: string;
+  note: string;
+  projects: { id: string; name: string; goal: string | null }[];
+}): Promise<ResourceClassification> {
+  const res = await callN8nWebhook(N8N_ADD_RESOURCE_URL, { body });
+  const o = await readOutput(res);
+  const str = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : null);
+  return {
+    title: str(o["title"]),
+    resource_type: str(o["resource_type"]),
+    topic: str(o["topic"]),
+    problem_helped: str(o["problem_helped"]),
+    summary: str(o["summary"]),
+    project_id: str(o["project_id"]),
+  };
+}
 
 export type ProjectPlan = {
   done_definition: string | null;
@@ -147,7 +179,7 @@ export async function requestRecommendation(input: {
   const since14 = new Date(Date.now() - 14 * 86400000).toISOString();
   const none = ["00000000-0000-0000-0000-000000000000"];
 
-  const [recent_summary, tasks, sessions, notes, today, rejections, urgent] = await Promise.all([
+  const [recent_summary, tasks, sessions, notes, today, rejections, urgent, resources] = await Promise.all([
     fetchRecentSummary(settings),
     supabase
       .from("tasks")
@@ -183,8 +215,14 @@ export async function requestRecommendation(input: {
       .order("created_at", { ascending: false })
       .limit(50),
     supabase.from("urgent_items").select("*").eq("status", "open"),
+    supabase
+      .from("resources")
+      .select("id,title,url,resource_type,topic,problem_helped,project_id")
+      .eq("classified", true)
+      .order("created_at", { ascending: false })
+      .limit(30),
   ]);
-  for (const r of [tasks, sessions, notes, today, rejections, urgent]) if (r.error) throw r.error;
+  for (const r of [tasks, sessions, notes, today, rejections, urgent, resources]) if (r.error) throw r.error;
 
   const tasksBy = groupBy(tasks.data ?? [], (t) => t.project_id, 8);
   const sessionsBy = groupBy(sessions.data ?? [], (t) => t.project_id, 3);
@@ -241,6 +279,7 @@ export async function requestRecommendation(input: {
         at: r.created_at,
       })),
       urgent_items: urgent.data ?? [],
+      resources: resources.data ?? [],
     },
   });
 
@@ -256,6 +295,7 @@ export async function requestRecommendation(input: {
     clarifying_question: str(output["clarifying_question"]),
     task_id: str(output["task_id"]),
     new_task_title: str(output["new_task_title"]),
+    resource_id: str(output["resource_id"]),
     est_minutes: output["est_minutes"] != null && Number.isFinite(est) && est > 0 ? Math.round(est) : null,
   };
 }
