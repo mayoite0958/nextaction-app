@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { classifyResource } from "@/lib/n8n";
+import { youtubeThumb } from "@/lib/youtube";
 import type { Database } from "@/integrations/supabase/types";
 
 type Resource = Database["public"]["Tables"]["resources"]["Row"];
@@ -133,6 +134,9 @@ function ResourcesPage() {
 
       <section className="panel mt-6 space-y-3 p-5">
         <Input placeholder="Link (https://…)" type="url" value={url} onChange={(e) => setUrl(e.target.value)} />
+        {youtubeThumb(url) && (
+          <img src={youtubeThumb(url)!} alt="Video preview" className="aspect-video w-full rounded-md object-cover" />
+        )}
         <div className="flex gap-2">
           <Input placeholder="What does this help with?" value={note} onChange={(e) => setNote(e.target.value)} />
           <MicButton onText={(t) => setNote((n) => (n ? `${n} ${t}` : t))} />
@@ -175,8 +179,21 @@ function ResourcesPage() {
                     </div>
                   </li>
                 ) : (
-                  <li key={r.id} className="panel p-4 text-sm">
-                    <div className="flex items-start justify-between gap-3">
+                  <li key={r.id} className="panel overflow-hidden text-sm">
+                    {youtubeThumb(r.url) && (
+                      <a href={r.url!} target="_blank" rel="noreferrer" className="relative block">
+                        <img
+                          src={youtubeThumb(r.url)!}
+                          alt={r.title ?? "YouTube video"}
+                          className="aspect-video w-full object-cover"
+                          loading="lazy"
+                        />
+                        <span className="absolute inset-0 flex items-center justify-center">
+                          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-background/80 text-lg text-primary">▶</span>
+                        </span>
+                      </a>
+                    )}
+                    <div className="flex items-start justify-between gap-3 p-4">
                       <div className="min-w-0">
                         <p className="font-medium">{r.title || r.url || r.user_note}</p>
                         {r.problem_helped && <p className="text-muted-foreground">{r.problem_helped}</p>}
@@ -184,7 +201,7 @@ function ResourcesPage() {
                         <p className="mt-1 text-xs text-muted-foreground">
                           {[r.topic, projectName(r.project_id)].filter(Boolean).join(" · ")}
                         </p>
-                        {r.url && <a href={r.url} target="_blank" rel="noreferrer" className="break-all text-primary underline">{r.url}</a>}
+                        {r.url && !youtubeThumb(r.url) && <a href={r.url} target="_blank" rel="noreferrer" className="break-all text-primary underline">{r.url}</a>}
                       </div>
                       <div className="flex shrink-0 gap-1">
                         <Button size="sm" variant="ghost" onClick={() => setEditing(r)}>Edit</Button>
