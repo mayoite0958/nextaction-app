@@ -134,6 +134,9 @@ function ResourcesPage() {
 
       <section className="panel mt-6 space-y-3 p-5">
         <Input placeholder="Link (https://…)" type="url" value={url} onChange={(e) => setUrl(e.target.value)} />
+        {youtubeThumb(url) && (
+          <img src={youtubeThumb(url)!} alt="Video preview" className="aspect-video w-full rounded-md object-cover" />
+        )}
         <div className="flex gap-2">
           <Input placeholder="What does this help with?" value={note} onChange={(e) => setNote(e.target.value)} />
           <MicButton onText={(t) => setNote((n) => (n ? `${n} ${t}` : t))} />
