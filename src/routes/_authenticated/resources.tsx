@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { classifyResource } from "@/lib/n8n";
-import { youtubeThumb, youtubeWatchUrl } from "@/lib/youtube";
+import { youtubeThumb } from "@/lib/youtube";
+import { ExternalLink, ResourceThumb } from "@/components/ResourceThumb";
 import type { Database } from "@/integrations/supabase/types";
 
 type Resource = Database["public"]["Tables"]["resources"]["Row"];
@@ -135,7 +136,7 @@ function ResourcesPage() {
       <section className="panel mt-6 space-y-3 p-5">
         <Input placeholder="Link (https://…)" type="url" value={url} onChange={(e) => setUrl(e.target.value)} />
         {youtubeThumb(url) && (
-          <img src={youtubeThumb(url)!} alt="Video preview" className="aspect-video w-full rounded-md object-cover" />
+          <img src={youtubeThumb(url)!} alt="Video preview" className="aspect-video w-40 rounded-md object-cover" />
         )}
         <div className="flex gap-2">
           <Input placeholder="What does this help with?" value={note} onChange={(e) => setNote(e.target.value)} />
@@ -156,7 +157,7 @@ function ResourcesPage() {
         groups.map(({ g, items }) => (
           <section key={g} className="mt-8">
             <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">{g}</h2>
-            <ul className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <ul className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-2">
               {items.map((r) =>
                 editing?.id === r.id ? (
                   <li key={r.id} className="panel space-y-2 p-4">
@@ -179,33 +180,18 @@ function ResourcesPage() {
                     </div>
                   </li>
                 ) : (
-                  <li key={r.id} className="panel overflow-hidden text-sm">
-                    {youtubeThumb(r.url) && (
-                      <a href={youtubeWatchUrl(r.url!)} target="_blank" rel="noreferrer" className="relative block">
-                        <img
-                          src={youtubeThumb(r.url)!}
-                          alt={r.title ?? "YouTube video"}
-                          className="aspect-video w-full object-cover"
-                          loading="lazy"
-                        />
-                        <span className="absolute inset-0 flex items-center justify-center">
-                          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-background/80 text-sm text-primary">▶</span>
-                        </span>
-                      </a>
-                    )}
-                    <div className="flex items-start justify-between gap-3 p-3">
-                      <div className="min-w-0">
-                        <p className="font-medium">{r.title || r.url || r.user_note}</p>
-                        {r.problem_helped && <p className="text-muted-foreground">{r.problem_helped}</p>}
-                        {r.summary && <p className="mt-1">{r.summary}</p>}
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {[r.topic, projectName(r.project_id)].filter(Boolean).join(" · ")}
-                        </p>
-                        {r.url && !youtubeThumb(r.url) && <a href={r.url} target="_blank" rel="noreferrer" className="break-all text-primary underline">{r.url}</a>}
-                      </div>
-                      <div className="flex shrink-0 gap-1">
-                        <Button size="sm" variant="ghost" onClick={() => setEditing(r)}>Edit</Button>
-                        <Button size="sm" variant="ghost" onClick={() => remove(r.id)}>Delete</Button>
+                  <li key={r.id} className="panel flex gap-3 p-2 text-sm">
+                    <ResourceThumb url={r.url} title={r.title} />
+                    <div className="min-w-0 flex-1">
+                      <p className="line-clamp-2 font-medium">{r.title || r.url || r.user_note}</p>
+                      {r.problem_helped && <p className="line-clamp-2 text-xs text-muted-foreground">{r.problem_helped}</p>}
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {[r.topic, projectName(r.project_id)].filter(Boolean).join(" · ")}
+                      </p>
+                      {r.url && !youtubeThumb(r.url) && <ExternalLink url={r.url} />}
+                      <div className="mt-1 flex gap-1">
+                        <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setEditing(r)}>Edit</Button>
+                        <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => remove(r.id)}>Delete</Button>
                       </div>
                     </div>
                   </li>
