@@ -44,6 +44,7 @@ export function SessionPanel({
   const [rightTask, setRightTask] = useState(3);
   const [lessStuck, setLessStuck] = useState(3);
   const [milestone, setMilestone] = useState(false);
+  const [resourceUsed, setResourceUsed] = useState<boolean | null>(null);
   const [project, setProject] = useState<ProjectRow | null>(null);
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [plusCount, setPlusCount] = useState(0);
@@ -93,6 +94,7 @@ export function SessionPanel({
         decision_started_at: now,
         work_started_at: now,
         task_id: tid,
+        resource_id: recommendation.resource_id,
       })
       .select("id")
       .single();
@@ -120,6 +122,7 @@ export function SessionPanel({
         right_task: rightTask,
         less_stuck: lessStuck,
         milestone_moved: milestone,
+        ...(recommendation.resource_id ? { resource_used: resourceUsed } : {}),
       })
       .eq("id", sessionId);
     if (error) {
@@ -272,6 +275,14 @@ export function SessionPanel({
         <Chips label="Right task?" options={["1", "2", "3", "4", "5"]} value={String(rightTask)} onChange={(v) => setRightTask(Number(v))} />
         <Chips label="Less stuck?" options={["1", "2", "3", "4", "5"]} value={String(lessStuck)} onChange={(v) => setLessStuck(Number(v))} />
         <Chips label="Milestone moved?" options={["Yes", "No"]} value={milestone ? "Yes" : "No"} onChange={(v) => setMilestone(v === "Yes")} />
+        {recommendation.resource_id && (
+          <Chips
+            label="Did you use the resource?"
+            options={["Yes", "No"]}
+            value={resourceUsed == null ? "" : resourceUsed ? "Yes" : "No"}
+            onChange={(v) => setResourceUsed(v === "Yes")}
+          />
+        )}
         <Button onClick={end} disabled={busy || !outcome}>
           {busy ? "Finishing…" : "Done"}
         </Button>

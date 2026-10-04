@@ -197,6 +197,7 @@ function Today() {
               <p className="text-base font-medium">{recommendation.next_action}</p>
             )}
             <RecTask rec={recommendation} />
+            <RecResource id={recommendation.resource_id} />
             {recommendation.done_looks_like && (
               <p>
                 <span className="text-muted-foreground">Done looks like: </span>
@@ -331,6 +332,34 @@ function Today() {
         </div>
       )}
     </AppShell>
+  );
+}
+
+function RecResource({ id }: { id: string | null }) {
+  const q = useQuery({
+    queryKey: ["resource", id],
+    enabled: !!id,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("resources").select("*").eq("id", id!).maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+  if (!id || !q.data) return null;
+  const r = q.data;
+  return (
+    <div className="rounded-md border border-border p-3">
+      <p className="text-xs uppercase tracking-widest text-muted-foreground">📚 Saved resource for this step</p>
+      <p className="mt-1 font-medium">
+        {r.title || r.url}
+        {r.resource_type && <span className="ml-2 text-sm text-muted-foreground">{r.resource_type}</span>}
+      </p>
+      {r.url && (
+        <a href={r.url} target="_blank" rel="noreferrer" className="text-sm text-primary underline break-all">
+          {r.url}
+        </a>
+      )}
+    </div>
   );
 }
 
