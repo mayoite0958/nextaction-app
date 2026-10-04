@@ -59,15 +59,15 @@ export async function callN8nWebhook(
   });
 }
 
-/** n8n webhook that receives app events. Swap to the Production URL when live. */
-export const N8N_RECOMMEND_URL = "https://vidhikaindustries.app.n8n.cloud/webhook-test/recommend";
-/** n8n webhook called when a work session ends. */
+/** n8n webhook that receives app events (production URL). */
+export const N8N_RECOMMEND_URL = "https://vidhikaindustries.app.n8n.cloud/webhook/recommend";
+/** n8n webhook called when a work session ends (production URL). */
 export const N8N_END_SESSION_URL =
-  "https://vidhikaindustries.app.n8n.cloud/webhook-test/end-session";
+  "https://vidhikaindustries.app.n8n.cloud/webhook/end-session";
 
-/** n8n webhook that drafts a done definition + milestones. Placeholder until the real URL is supplied. */
+/** n8n webhook that drafts a done definition + milestones (production URL). */
 export const N8N_PLAN_PROJECT_URL =
-  "https://vidhikaindustries.app.n8n.cloud/webhook-test/plan-project";
+  "https://vidhikaindustries.app.n8n.cloud/webhook/plan-project";
 
 export type ProjectPlan = {
   done_definition: string | null;
