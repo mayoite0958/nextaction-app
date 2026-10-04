@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { youtubeThumb } from "@/lib/youtube";
 
 export function ProjectResources({ projectId }: { projectId: string }) {
   const q = useQuery({
