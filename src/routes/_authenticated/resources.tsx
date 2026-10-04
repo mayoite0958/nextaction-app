@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { classifyResource } from "@/lib/n8n";
-import { youtubeThumb } from "@/lib/youtube";
+import { youtubeThumb, youtubeWatchUrl } from "@/lib/youtube";
 import type { Database } from "@/integrations/supabase/types";
 
 type Resource = Database["public"]["Tables"]["resources"]["Row"];
