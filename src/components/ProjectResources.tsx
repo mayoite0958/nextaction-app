@@ -26,11 +26,11 @@ export function ProjectResources({ projectId }: { projectId: string }) {
           {q.isLoading ? "Loading…" : "Nothing saved yet. Add links on the Resources page."}
         </p>
       ) : (
-        <ul className="mt-3 space-y-3 text-sm">
+        <ul className="mt-3 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
           {rows.map((r) => (
             <li key={r.id} className="overflow-hidden rounded-md border border-border">
               {youtubeThumb(r.url) && (
-                <a href={r.url!} target="_blank" rel="noreferrer" className="relative block">
+                <a href={youtubeWatchUrl(r.url!)} target="_blank" rel="noreferrer" className="relative block">
                   <img
                     src={youtubeThumb(r.url)!}
                     alt={r.title ?? "YouTube video"}
@@ -38,7 +38,7 @@ export function ProjectResources({ projectId }: { projectId: string }) {
                     loading="lazy"
                   />
                   <span className="absolute inset-0 flex items-center justify-center">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-background/80 text-primary">▶</span>
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-background/80 text-xs text-primary">▶</span>
                   </span>
                 </a>
               )}
