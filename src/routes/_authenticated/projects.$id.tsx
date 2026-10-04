@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { TaskList } from "@/components/TaskList";
 import { WeeklyReview } from "@/components/WeeklyReview";
+import { ProjectResources } from "@/components/ProjectResources";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -333,6 +334,7 @@ function ProjectPage() {
       )}
 
       {!isNew && <TaskList projectId={id} />}
+      {!isNew && <ProjectResources projectId={id} />}
       {!isNew && <WeeklyReview projectId={id} />}
 
       {!isNew && (
