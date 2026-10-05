@@ -3,8 +3,8 @@
 /** iCloud link to the "Save to Next Action" iPhone shortcut. PLACEHOLDER — replace with the real link. */
 export const SHORTCUT_ICLOUD_URL = "https://www.icloud.com/shortcuts/REPLACE-WITH-YOUR-SHORTCUT";
 
-/** Where the desktop bookmark and Android share send saved links. PLACEHOLDER following the n8n pattern. */
-export const CAPTURE_URL = "https://vidhikaindustries.app.n8n.cloud/webhook/capture";
+/** n8n workflow that receives saves from the desktop bookmark and Android share. */
+export const CAPTURE_URL = "https://vidhikaindustries.app.n8n.cloud/webhook/share-capture";
 
 export const KEY_STORAGE = "na_capture_key";
 
@@ -26,9 +26,10 @@ export function shortcutRunUrl(key: string) {
   return `shortcuts://run-shortcut?name=Save%20to%20Next%20Action&input=text&text=${encodeURIComponent(`NAKEY:${key}`)}`;
 }
 
-/** Bookmarklet that sends the current page to the capture address with the key. */
+/** Bookmarklet that opens the /share note box in a small window for the current page. */
 export function bookmarklet(key: string) {
-  const js = `(function(){fetch(${JSON.stringify(CAPTURE_URL)},{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:${JSON.stringify(key)},url:location.href,title:document.title,source:'desktop'})}).then(function(){alert('Saved to Next Action')}).catch(function(){alert('Could not save to Next Action')})})()`;
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const js = `(function(){var u=${JSON.stringify(`${origin}/share`)}+'?source=desktop&k='+${JSON.stringify(encodeURIComponent(key))}+'&link='+encodeURIComponent(location.href)+'&title='+encodeURIComponent(document.title);window.open(u,'na_save','width=480,height=420')})()`;
   return `javascript:${encodeURIComponent(js)}`;
 }
 

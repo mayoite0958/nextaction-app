@@ -7,9 +7,6 @@ import { relativeTime } from "@/lib/nextaction";
 import { bookmarklet, connectUrl, detectDevice, KEY_STORAGE, newKey, type Device } from "@/lib/phone";
 import { PhoneSteps } from "@/components/PhoneSteps";
 
-// capture_key may not be in the generated types yet, so access it loosely.
-type SettingsKeyRow = { capture_key?: string | null; last_capture_at?: string | null };
-
 export function ConnectPhone() {
   const qc = useQueryClient();
   const [device, setDevice] = useState<Device | null>(null);
@@ -22,7 +19,7 @@ export function ConnectPhone() {
     if (!u.user) throw new Error("You are signed out.");
     const { error } = await supabase
       .from("user_settings")
-      .update({ capture_key: k } as never)
+      .update({ capture_key: k })
       .eq("user_id", u.user.id);
     if (error) throw error;
     setCaptureKey(k);
@@ -32,8 +29,8 @@ export function ConnectPhone() {
   // Load capture_key; generate one if empty.
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.from("user_settings").select("*").maybeSingle();
-      const row = data as SettingsKeyRow | null;
+      const { data } = await supabase.from("user_settings").select("capture_key").maybeSingle();
+      const row = data;
       if (row?.capture_key) {
         setCaptureKey(row.capture_key);
         localStorage.setItem(KEY_STORAGE, row.capture_key);
@@ -49,7 +46,7 @@ export function ConnectPhone() {
     refetchInterval: 10_000,
     queryFn: async () => {
       const [s, r] = await Promise.all([
-        supabase.from("user_settings").select("*").maybeSingle(),
+        supabase.from("user_settings").select("last_capture_at").maybeSingle(),
         supabase
           .from("resources")
           .select("created_at")
@@ -57,7 +54,7 @@ export function ConnectPhone() {
           .order("created_at", { ascending: false })
           .limit(1),
       ]);
-      const last = (s.data as SettingsKeyRow | null)?.last_capture_at ?? null;
+      const last = s.data?.last_capture_at ?? null;
       const res = r.data?.[0]?.created_at ?? null;
       const times = [last, res].filter(Boolean) as string[];
       if (!times.length) return null;
