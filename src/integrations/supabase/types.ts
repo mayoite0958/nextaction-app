@@ -479,6 +479,7 @@ export type Database = {
           distraction_sites: string[] | null
           email_forward_tag: string | null
           guard_mode: string | null
+          last_capture_at: string | null
           morning_brief_enabled: boolean | null
           morning_brief_time: string | null
           priority_notes: string | null
@@ -504,6 +505,7 @@ export type Database = {
           distraction_sites?: string[] | null
           email_forward_tag?: string | null
           guard_mode?: string | null
+          last_capture_at?: string | null
           morning_brief_enabled?: boolean | null
           morning_brief_time?: string | null
           priority_notes?: string | null
@@ -529,6 +531,7 @@ export type Database = {
           distraction_sites?: string[] | null
           email_forward_tag?: string | null
           guard_mode?: string | null
+          last_capture_at?: string | null
           morning_brief_enabled?: boolean | null
           morning_brief_time?: string | null
           priority_notes?: string | null
