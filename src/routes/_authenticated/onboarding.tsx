@@ -146,10 +146,10 @@ function Onboarding() {
   return (
     <main className="mx-auto max-w-2xl px-6 py-12">
       <p className="font-display text-xs uppercase tracking-[0.3em] text-primary">
-        Step {step} of 4
+        Step {step} of 5
       </p>
       <div className="mt-3 flex gap-1.5">
-        {[1, 2, 3, 4].map((n) => (
+        {[1, 2, 3, 4, 5].map((n) => (
           <span
             key={n}
             className={`h-1 flex-1 rounded-full ${n <= step ? "bg-primary" : "bg-muted"}`}
