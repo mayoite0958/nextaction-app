@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
@@ -13,6 +13,12 @@ export function ConnectPhone() {
   const [captureKey, setCaptureKey] = useState<string | null>(null);
 
   useEffect(() => setDevice(detectDevice(navigator.userAgent)), []);
+
+  // React blocks javascript: hrefs, so set it on the element directly.
+  const bmRef = useRef<HTMLAnchorElement>(null);
+  useEffect(() => {
+    if (bmRef.current && captureKey) bmRef.current.setAttribute("href", bookmarklet(captureKey));
+  }, [captureKey, device]);
 
   async function saveKey(k: string) {
     const { data: u } = await supabase.auth.getUser();
@@ -86,15 +92,35 @@ export function ConnectPhone() {
             <QRCodeSVG value={connectUrl(captureKey)} size={160} bgColor="transparent" fgColor="var(--background)" />
           </div>
           <p className="text-sm font-medium">Scan with your phone camera</p>
-          <div className="space-y-1 text-sm">
-            <a
-              href={bookmarklet(captureKey)}
-              onClick={(e) => e.preventDefault()}
-              className="inline-block cursor-grab rounded-md border border-primary px-3 py-1.5 font-medium text-primary"
-            >
-              Save to Next Action
-            </a>
+            <div className="space-y-1 text-sm">
+            <div className="flex flex-wrap items-center gap-2">
+              <a
+                ref={bmRef}
+                onClick={(e) => e.preventDefault()}
+                className="inline-block cursor-grab rounded-md border border-primary px-3 py-1.5 font-medium text-primary"
+              >
+                Save to Next Action
+              </a>
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(bookmarklet(captureKey));
+                    toast.success("Bookmark code copied.");
+                  } catch {
+                    toast.error("Couldn't copy — please try again.");
+                  }
+                }}
+                className="rounded-md border border-input px-3 py-1.5 text-sm"
+              >
+                Copy bookmark code
+              </button>
+            </div>
             <p className="text-muted-foreground">Drag this button to your browser's bookmarks bar.</p>
+            <p className="text-muted-foreground">
+              Or add it by hand: click "Copy bookmark code", right-click the bookmarks bar → Add page → name it
+              "Save to Next Action" → paste the code as the URL → Save.
+            </p>
             <p className="text-xs text-muted-foreground">
               Safari: first turn on Safari → Settings → Advanced → "Show features for web developers", then
               Developer tab → "Allow JavaScript from Smart Search Field". If a save window doesn't appear, allow pop-ups for this site.
