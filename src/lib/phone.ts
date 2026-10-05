@@ -32,8 +32,9 @@ export function shortcutRunUrl(key: string) {
 /** Bookmarklet that opens the /share note box in a small window for the current page. */
 export function bookmarklet(key: string) {
   const origin = APP_ORIGIN;
-  const js = `(function(){var u=${JSON.stringify(`${origin}/share`)}+'?source=desktop&k='+${JSON.stringify(encodeURIComponent(key))}+'&link='+encodeURIComponent(location.href)+'&title='+encodeURIComponent(document.title);window.open(u,'na_save','width=480,height=420')})()`;
-  return `javascript:${encodeURIComponent(js)}`;
+  // Falls back to opening in the same tab when the popup is blocked.
+  const js = `(function(){var u='${origin}/share?source=desktop&k=${encodeURIComponent(key)}&link='+encodeURIComponent(location.href)+'&title='+encodeURIComponent(document.title);var w=window.open(u,'na_save','width=480,height=420');if(!w){location.href=u}})();void 0`;
+  return `javascript:${js.replace(/ /g, "%20")}`;
 }
 
 export function newKey() {
