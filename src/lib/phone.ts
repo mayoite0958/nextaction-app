@@ -8,6 +8,9 @@ export const CAPTURE_URL = "https://vidhikaindustries.app.n8n.cloud/webhook/shar
 
 export const KEY_STORAGE = "na_capture_key";
 
+/** Production address used in every link users see (QR, bookmarklet, sign-up emails). */
+export const APP_ORIGIN = "https://nextaction-app.lovable.app";
+
 export type Device = "desktop" | "iphone" | "android" | "inapp";
 
 export function detectDevice(ua: string): Device {
@@ -18,7 +21,7 @@ export function detectDevice(ua: string): Device {
 }
 
 export function connectUrl(key: string) {
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const origin = APP_ORIGIN;
   return `${origin}/connect-phone?k=${encodeURIComponent(key)}`;
 }
 
@@ -28,7 +31,7 @@ export function shortcutRunUrl(key: string) {
 
 /** Bookmarklet that opens the /share note box in a small window for the current page. */
 export function bookmarklet(key: string) {
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const origin = APP_ORIGIN;
   const js = `(function(){var u=${JSON.stringify(`${origin}/share`)}+'?source=desktop&k='+${JSON.stringify(encodeURIComponent(key))}+'&link='+encodeURIComponent(location.href)+'&title='+encodeURIComponent(document.title);window.open(u,'na_save','width=480,height=420')})()`;
   return `javascript:${encodeURIComponent(js)}`;
 }
