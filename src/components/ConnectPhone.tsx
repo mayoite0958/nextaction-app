@@ -95,6 +95,10 @@ export function ConnectPhone() {
               Save to Next Action
             </a>
             <p className="text-muted-foreground">Drag this button to your browser's bookmarks bar.</p>
+            <p className="text-xs text-muted-foreground">
+              Safari: first turn on Safari → Settings → Advanced → "Show features for web developers", then
+              Developer tab → "Allow JavaScript from Smart Search Field". If a save window doesn't appear, allow pop-ups for this site.
+            </p>
           </div>
         </div>
       ) : (
