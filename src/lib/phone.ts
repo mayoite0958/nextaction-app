@@ -1,7 +1,7 @@
 // Phone-connection constants and helpers shared by Settings, onboarding and /connect-phone.
 
-/** iCloud link to the "Save to Next Action" iPhone shortcut. PLACEHOLDER — replace with the real link. */
-export const SHORTCUT_ICLOUD_URL = "https://www.icloud.com/shortcuts/REPLACE-WITH-YOUR-SHORTCUT";
+/** iCloud link to the "Save to Next Action" iPhone shortcut. */
+export const SHORTCUT_ICLOUD_URL = "https://www.icloud.com/shortcuts/38680cbe27c5483d8a948ef7f5bc090e";
 
 /** n8n workflow that receives saves from the desktop bookmark and Android share. */
 export const CAPTURE_URL = "https://vidhikaindustries.app.n8n.cloud/webhook/share-capture";
