@@ -30,6 +30,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { bucketLabel, COACHING_TONES, ROLE_TEMPLATES, TIMEZONES } from "@/lib/nextaction";
 import { parseTargets } from "@/lib/categories";
+import { ConnectPhone } from "@/components/ConnectPhone";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({
@@ -433,6 +434,13 @@ function SettingsPage() {
             onChange={(e) => set("morning_brief_time", e.target.value)}
           />
         </div>
+      </section>
+
+      <section className="panel mt-6 space-y-5 p-6">
+        <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+          Connect your phone
+        </h2>
+        <ConnectPhone />
       </section>
 
       <section className="panel mt-6 space-y-5 p-6">
