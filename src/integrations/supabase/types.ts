@@ -471,6 +471,7 @@ export type Database = {
         Row: {
           bucket_longterm_label: string | null
           bucket_urgent_label: string | null
+          capture_key: string | null
           category_targets: Json | null
           coaching_tone: string | null
           consent_given_at: string | null
@@ -497,6 +498,7 @@ export type Database = {
         Insert: {
           bucket_longterm_label?: string | null
           bucket_urgent_label?: string | null
+          capture_key?: string | null
           category_targets?: Json | null
           coaching_tone?: string | null
           consent_given_at?: string | null
@@ -523,6 +525,7 @@ export type Database = {
         Update: {
           bucket_longterm_label?: string | null
           bucket_urgent_label?: string | null
+          capture_key?: string | null
           category_targets?: Json | null
           coaching_tone?: string | null
           consent_given_at?: string | null

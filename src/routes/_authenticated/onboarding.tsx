@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { COACHING_TONES, ROLE_TEMPLATES, TIMEZONES } from "@/lib/nextaction";
+import { ConnectPhone } from "@/components/ConnectPhone";
 
 export const Route = createFileRoute("/_authenticated/onboarding")({
   head: () => ({
@@ -130,7 +131,7 @@ function Onboarding() {
       if (projectsError) throw projectsError;
 
       toast.success("You're set up.");
-      navigate({ to: "/today", replace: true });
+      setStep(5);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not save your setup");
     } finally {
@@ -145,10 +146,10 @@ function Onboarding() {
   return (
     <main className="mx-auto max-w-2xl px-6 py-12">
       <p className="font-display text-xs uppercase tracking-[0.3em] text-primary">
-        Step {step} of 4
+        Step {step} of 5
       </p>
       <div className="mt-3 flex gap-1.5">
-        {[1, 2, 3, 4].map((n) => (
+        {[1, 2, 3, 4, 5].map((n) => (
           <span
             key={n}
             className={`h-1 flex-1 rounded-full ${n <= step ? "bg-primary" : "bg-muted"}`}
@@ -400,6 +401,21 @@ function Onboarding() {
               {saving ? "Saving…" : "Finish setup"}
             </Button>
           </div>
+        </section>
+      )}
+
+      {step === 5 && (
+        <section className="mt-8">
+          <h1 className="text-3xl font-bold">Connect your phone</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Save links to Next Action straight from your phone. You can also do this later in Settings.
+          </p>
+          <div className="panel mt-6 p-6">
+            <ConnectPhone />
+          </div>
+          <Button className="mt-6" onClick={() => navigate({ to: "/today", replace: true })}>
+            Go to Today
+          </Button>
         </section>
       )}
     </main>

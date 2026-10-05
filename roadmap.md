@@ -8,3 +8,4 @@
 - [x] End-session: send session events; pre-ticked checkboxes for output.notes / output.new_tasks / task_done; save ticked to project_notes + tasks
 - [x] Project form: plan-project output.first_tasks shown as editable ticked list; on save insert ticked into tasks (milestone = first milestone title, status todo, source ai)
 - [x] All external resource links open in a new tab (Resources, project pages, Today resource card)
+- [x] Connect your phone (Settings + onboarding + /connect-phone + Android share) — needs real iCloud shortcut link and capture address
