@@ -45,7 +45,7 @@ function SharePage() {
     if (!key || !note.trim()) return;
     setSending(true);
     try {
-      const r = await fetch(CAPTURE_URL, {
+      const r = await fetch("/api/public/share-capture", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

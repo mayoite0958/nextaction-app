@@ -19,6 +19,7 @@ import { Route as AuthenticatedResourcesRouteImport } from './routes/_authentica
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedTodayRouteImport } from './routes/_authenticated/today'
 import { Route as AuthenticatedProjectsIdRouteImport } from './routes/_authenticated/projects.$id'
+import { Route as ApiPublicShareCaptureRouteImport } from './routes/api/public/share-capture'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -69,6 +70,11 @@ const AuthenticatedProjectsIdRoute = AuthenticatedProjectsIdRouteImport.update({
   path: '/projects/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiPublicShareCaptureRoute = ApiPublicShareCaptureRouteImport.update({
+  id: '/api/public/share-capture',
+  path: '/api/public/share-capture',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -80,6 +86,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AuthenticatedSettingsRoute
   '/today': typeof AuthenticatedTodayRoute
   '/projects/$id': typeof AuthenticatedProjectsIdRoute
+  '/api/public/share-capture': typeof ApiPublicShareCaptureRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -91,6 +98,7 @@ export interface FileRoutesByTo {
   '/settings': typeof AuthenticatedSettingsRoute
   '/today': typeof AuthenticatedTodayRoute
   '/projects/$id': typeof AuthenticatedProjectsIdRoute
+  '/api/public/share-capture': typeof ApiPublicShareCaptureRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -104,6 +112,7 @@ export interface FileRoutesById {
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/today': typeof AuthenticatedTodayRoute
   '/_authenticated/projects/$id': typeof AuthenticatedProjectsIdRoute
+  '/api/public/share-capture': typeof ApiPublicShareCaptureRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -117,6 +126,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/today'
     | '/projects/$id'
+    | '/api/public/share-capture'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -128,6 +138,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/today'
     | '/projects/$id'
+    | '/api/public/share-capture'
   id:
     | '__root__'
     | '/'
@@ -140,6 +151,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings'
     | '/_authenticated/today'
     | '/_authenticated/projects/$id'
+    | '/api/public/share-capture'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -148,6 +160,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ConnectPhoneRoute: typeof ConnectPhoneRoute
   ShareRoute: typeof ShareRoute
+  ApiPublicShareCaptureRoute: typeof ApiPublicShareCaptureRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -222,6 +235,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProjectsIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/share-capture': {
+      id: '/api/public/share-capture'
+      path: '/api/public/share-capture'
+      fullPath: '/api/public/share-capture'
+      preLoaderRoute: typeof ApiPublicShareCaptureRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -250,6 +270,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ConnectPhoneRoute: ConnectPhoneRoute,
   ShareRoute: ShareRoute,
+  ApiPublicShareCaptureRoute: ApiPublicShareCaptureRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
