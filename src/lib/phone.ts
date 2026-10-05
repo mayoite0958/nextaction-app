@@ -29,7 +29,7 @@ export function shortcutRunUrl(key: string) {
 /** Bookmarklet that opens the /share note box in a small window for the current page. */
 export function bookmarklet(key: string) {
   const origin = typeof window !== "undefined" ? window.location.origin : "";
-  const js = `(function(){var u=${JSON.stringify(`${origin}/share`)}+'?source=desktop&k='+${JSON.stringify(encodeURIComponent(key))}+'&url='+encodeURIComponent(location.href)+'&title='+encodeURIComponent(document.title);window.open(u,'na_save','width=480,height=420')})()`;
+  const js = `(function(){var u=${JSON.stringify(`${origin}/share`)}+'?source=desktop&k='+${JSON.stringify(encodeURIComponent(key))}+'&link='+encodeURIComponent(location.href)+'&title='+encodeURIComponent(document.title);window.open(u,'na_save','width=480,height=420')})()`;
   return `javascript:${encodeURIComponent(js)}`;
 }
 

@@ -9,7 +9,7 @@ import { CAPTURE_URL, KEY_STORAGE } from "@/lib/phone";
 // Receives links from Android Share and the desktop bookmark, asks for a note, then sends to n8n.
 export const Route = createFileRoute("/share")({
   validateSearch: z.object({
-    url: z.string().optional(),
+    link: z.string().optional(),
     text: z.string().optional(),
     title: z.string().optional(),
     source: z.enum(["android", "desktop"]).optional(),
@@ -29,12 +29,12 @@ export const Route = createFileRoute("/share")({
 });
 
 function SharePage() {
-  const { url, text, title, source, k } = Route.useSearch();
+  const { link: shared, text, title, source, k } = Route.useSearch();
   const [key, setKey] = useState<string | null | undefined>(undefined);
   const [note, setNote] = useState("");
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; msg: string } | null>(null);
-  const link = url || text?.match(/https?:\/\/\S+/)?.[0] || text || "";
+  const link = shared || text?.match(/https?:\/\/\S+/)?.[0] || text || "";
 
   useEffect(() => {
     if (k) localStorage.setItem(KEY_STORAGE, k);
