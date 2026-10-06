@@ -1,6 +1,7 @@
+import { scoreProjects } from "@/lib/scoring";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
-import { daysLeft } from "@/lib/nextaction";
+import { bucketLabel, daysLeft } from "@/lib/nextaction";
 import { daysSince, fetchRecentSummary, parseTargets } from "@/lib/categories";
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"];
@@ -227,6 +228,16 @@ export async function requestRecommendation(input: {
   const tasksBy = groupBy(tasks.data ?? [], (t) => t.project_id, 8);
   const sessionsBy = groupBy(sessions.data ?? [], (t) => t.project_id, 3);
   const notesBy = groupBy(notes.data ?? [], (t) => t.project_id, 5);
+  const targets = parseTargets(settings?.category_targets);
+  const allTasks = tasks.data ?? [];
+  const ranked = scoreProjects({
+    projects: active,
+    categoryOf: (p) => bucketLabel(settings, p.bucket),
+    targets,
+    minutes7d: Object.fromEntries(Object.entries(recent_summary).map(([k, v]) => [k, v.minutes])),
+    doneSessions: sessions.data ?? [],
+    openTaskCount: (id) => allTasks.filter((t) => t.project_id === id).length,
+  });
   const now = new Date();
   const fmt = (o: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat("en-CA", { timeZone: tz, ...o }).format(now);
 
@@ -245,7 +256,7 @@ export async function requestRecommendation(input: {
       energy: input.energy,
       rejected_actions: input.rejected_actions,
       settings: settings ?? null,
-      category_targets: parseTargets(settings?.category_targets),
+      category_targets: targets,
       balance: {
         last_7_days: Object.fromEntries(
           Object.entries(recent_summary).map(([k, v]) => [k, { minutes: v.minutes, sessions: v.count }]),
@@ -257,8 +268,11 @@ export async function requestRecommendation(input: {
           minutes: minutesBetween(s.work_started_at, s.ended_at),
         })),
       },
-      projects: active.map((p) => ({
+      top_projects: ranked.top.map(({ project: p, category, score, score_reasons }) => ({
         ...p,
+        category,
+        score,
+        score_reasons,
         days_since_worked: daysSince(p.last_worked_at),
         days_to_deadline: daysLeft(p.deadline),
         open_tasks: tasksBy[p.id] ?? [],
@@ -273,6 +287,11 @@ export async function requestRecommendation(input: {
         })),
         notes: notesBy[p.id] ?? [],
       })),
+      other_projects: ranked.others.map(({ project: p, category, score }) =>
+        `${p.name} (${category}, id ${p.id}, score ${score}): ${p.progress_percent ?? 0}% done` +
+        (p.deadline ? `, due ${p.deadline}` : "") +
+        (p.next_likely_action ? `, next: ${p.next_likely_action}` : ""),
+      ),
       rejections: (rejections.data ?? []).map((r) => ({
         action: r.recommended_action,
         project_name: r.project_name,
