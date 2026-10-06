@@ -1,3 +1,4 @@
+import { CHECKIN_INTERVALS, guardMode, parseGuard } from "@/lib/guard";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
@@ -112,7 +113,7 @@ function SettingsPage() {
       priority_notes: row.priority_notes ?? "",
       coaching_tone: row.coaching_tone ?? "direct",
       reply_language: row.reply_language ?? "English",
-      guard_mode: row.guard_mode ?? "self_report",
+      guard_mode: guardMode(parseGuard(row.guard_mode).on, parseGuard(row.guard_mode).interval),
       distraction_sites: (row.distraction_sites ?? []).join(", "),
       session_lengths: (row.session_lengths ?? []).join(", "),
       morning_brief_enabled: row.morning_brief_enabled ?? false,
