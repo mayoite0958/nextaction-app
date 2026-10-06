@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MicButton } from "@/components/MicButton";
 import { ActiveSession } from "@/components/ActiveSession";
 import { useQueryClient } from "@tanstack/react-query";
