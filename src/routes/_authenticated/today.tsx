@@ -275,6 +275,7 @@ function Today() {
                 recommendation={recommendation}
                 timeMin={Math.max(1, Number.parseInt(timeMin, 10) || 30)}
                 energy={energy}
+                autoStart={autoStart}
                 resume={resume && recommendation.next_action === resumeAction ? resume : undefined}
                 currentProgress={
                   projects.find((p) => p.id === recommendation.project_id)?.progress_percent ?? null
