@@ -83,6 +83,25 @@ function Today() {
   const [askError, setAskError] = useState<string | null>(null);
   const [resume, setResume] = useState<{ id: string; startedAt: string } | null>(null);
   const [resumeAction, setResumeAction] = useState<string | null>(null);
+  const [autoStart, setAutoStart] = useState(false);
+
+  // Start a session straight from a project card, without a recommendation.
+  function startDirect(p: ProjectRow) {
+    setAskError(null);
+    setAutoStart(true);
+    setRecommendation({
+      project_id: p.id,
+      project_name: p.name,
+      next_action: p.next_likely_action || `Work on ${p.name}`,
+      done_looks_like: null,
+      why: null,
+      clarifying_question: null,
+      task_id: null,
+      new_task_title: null,
+      est_minutes: null,
+      resource_id: null,
+    } as Recommendation);
+  }
 
   // Bring back a session that was still running when the page reloaded.
   useEffect(() => {
@@ -117,6 +136,7 @@ function Today() {
   async function ask(rejectedActions: string[]) {
     setAsking(true);
     setAskError(null);
+    setAutoStart(false);
     try {
       setRecommendation(
         await requestRecommendation({
