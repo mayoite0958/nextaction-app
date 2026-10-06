@@ -111,6 +111,15 @@ export function SessionPanel({
     setStage("working");
   }
 
+  const autoStarted = useRef(false);
+  useEffect(() => {
+    if (autoStart && stage === "idle" && !autoStarted.current) {
+      autoStarted.current = true;
+      void start();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoStart, stage]);
+
   async function end() {
     if (!sessionId) return;
     if (!outcome) { toast.error("Pick an outcome."); return; }
