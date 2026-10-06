@@ -396,17 +396,37 @@ function SettingsPage() {
             </Select>
           </div>
           <div className="space-y-2">
-            <Label>Focus check mode</Label>
-            <Select value={form.guard_mode} onValueChange={(v) => set("guard_mode", v)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="self_report">I report it myself</SelectItem>
-                <SelectItem value="tracked">Track my activity</SelectItem>
-                <SelectItem value="off">Off</SelectItem>
-              </SelectContent>
-            </Select>
+            <Label>Guard</Label>
+            <div className="flex gap-2">
+              <Select
+                value={parseGuard(form.guard_mode).on ? "on" : "off"}
+                onValueChange={(v) => set("guard_mode", guardMode(v === "on", parseGuard(form.guard_mode).interval))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="off">Off</SelectItem>
+                  <SelectItem value="on">Check-ins</SelectItem>
+                </SelectContent>
+              </Select>
+              {parseGuard(form.guard_mode).on && (
+                <Select
+                  value={String(parseGuard(form.guard_mode).interval)}
+                  onValueChange={(v) => set("guard_mode", guardMode(true, Number(v)))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CHECKIN_INTERVALS.map((n) => (
+                      <SelectItem key={n} value={String(n)}>Every {n} min</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">Gentle "still on it?" check-ins during a session. Never blocks anything.</p>
           </div>
         </div>
         <div className="space-y-2">

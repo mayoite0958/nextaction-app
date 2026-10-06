@@ -320,6 +320,7 @@ export async function reportSessionEnd(body: {
   outcome: string;
   where_stopped: string;
   events: { type: string | null; text: string | null; time: string | null }[];
+  focus?: { minutes_on_task: number; checkins: number; switches: number; away_minutes: number };
 }): Promise<SessionEndOutput> {
   const res = await callN8nWebhook(N8N_END_SESSION_URL, { body });
   const o = await readOutput(res);
