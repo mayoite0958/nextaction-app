@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ConnectPhoneRouteImport } from './routes/connect-phone'
 import { Route as ShareRouteImport } from './routes/share'
+import { Route as AuthenticatedCalendarRouteImport } from './routes/_authenticated/calendar'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedResourcesRouteImport } from './routes/_authenticated/resources'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
@@ -44,6 +45,11 @@ const ShareRoute = ShareRouteImport.update({
   id: '/share',
   path: '/share',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedCalendarRoute = AuthenticatedCalendarRouteImport.update({
+  id: '/calendar',
+  path: '/calendar',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
   id: '/onboarding',
@@ -81,6 +87,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/connect-phone': typeof ConnectPhoneRoute
   '/share': typeof ShareRoute
+  '/calendar': typeof AuthenticatedCalendarRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/resources': typeof AuthenticatedResourcesRoute
   '/settings': typeof AuthenticatedSettingsRoute
@@ -93,6 +100,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/connect-phone': typeof ConnectPhoneRoute
   '/share': typeof ShareRoute
+  '/calendar': typeof AuthenticatedCalendarRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/resources': typeof AuthenticatedResourcesRoute
   '/settings': typeof AuthenticatedSettingsRoute
@@ -107,6 +115,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/connect-phone': typeof ConnectPhoneRoute
   '/share': typeof ShareRoute
+  '/_authenticated/calendar': typeof AuthenticatedCalendarRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/_authenticated/resources': typeof AuthenticatedResourcesRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
@@ -121,6 +130,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/connect-phone'
     | '/share'
+    | '/calendar'
     | '/onboarding'
     | '/resources'
     | '/settings'
@@ -133,6 +143,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/connect-phone'
     | '/share'
+    | '/calendar'
     | '/onboarding'
     | '/resources'
     | '/settings'
@@ -146,6 +157,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/connect-phone'
     | '/share'
+    | '/_authenticated/calendar'
     | '/_authenticated/onboarding'
     | '/_authenticated/resources'
     | '/_authenticated/settings'
@@ -200,6 +212,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShareRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/calendar': {
+      id: '/_authenticated/calendar'
+      path: '/calendar'
+      fullPath: '/calendar'
+      preLoaderRoute: typeof AuthenticatedCalendarRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/onboarding': {
       id: '/_authenticated/onboarding'
       path: '/onboarding'
@@ -246,6 +265,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedCalendarRoute: typeof AuthenticatedCalendarRoute
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedResourcesRoute: typeof AuthenticatedResourcesRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
@@ -254,6 +274,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedCalendarRoute: AuthenticatedCalendarRoute,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
   AuthenticatedResourcesRoute: AuthenticatedResourcesRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
