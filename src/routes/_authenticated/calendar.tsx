@@ -69,8 +69,8 @@ function CalendarPage() {
     const n = Math.ceil(((last.getTime() - s.getTime()) / 86400000 + 1) / 7) * 7;
     return Array.from({ length: n }, (_, i) => addDays(s, i));
   }, [view, cursor]);
-  const from = days[0];
-  const to = addDays(days[days.length - 1], 1);
+  const from = days[0]!;
+  const to = addDays(days[days.length - 1]!, 1);
 
   const settingsQ = useQuery({
     queryKey: ["user_settings"],
