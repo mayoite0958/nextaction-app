@@ -54,7 +54,6 @@ export function TaskList({ projectId }: { projectId: string }) {
     await refresh();
     await recalcProjectProgress(projectId);
     void qc.invalidateQueries({ queryKey: ["projects"] });
-    void qc.invalidateQueries({ queryKey: ["project", projectId] });
   }
 
   const tasks = q.data ?? [];
