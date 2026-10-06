@@ -32,12 +32,14 @@ export function SessionPanel({
   timeMin,
   energy,
   resume,
+  autoStart,
 }: {
   resume?: { id: string; startedAt: string } | undefined;
   recommendation: Recommendation;
   timeMin: number;
   energy: Energy;
   currentProgress?: number | null;
+  autoStart?: boolean;
 }) {
   const qc = useQueryClient();
   const [stage, setStage] = useState<Stage>(resume ? "working" : "idle");
