@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
+import { recalcProjectProgress } from "@/lib/progress";
 
 const ENERGIES = ["Low", "Medium", "High"];
 
@@ -50,7 +51,9 @@ export function TaskList({ projectId }: { projectId: string }) {
       .update({ status, done_at: status === "done" ? new Date().toISOString() : null })
       .eq("id", id);
     if (error) { toast.error(error.message); return; }
-    void refresh();
+    await refresh();
+    await recalcProjectProgress(projectId);
+    void qc.invalidateQueries({ queryKey: ["projects"] });
   }
 
   const tasks = q.data ?? [];

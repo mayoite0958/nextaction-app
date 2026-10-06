@@ -15,6 +15,7 @@ import {
 } from "@/lib/n8n";
 import {
   computeProgress,
+  recalcProjectProgress,
   parseMilestones,
   projectType,
   weekStart,
@@ -148,6 +149,7 @@ export function SessionPanel({
     }
     if (taskId && outcome === "Completed") {
       await supabase.from("tasks").update({ status: "done", done_at: new Date().toISOString() }).eq("id", taskId);
+      if (recommendation.project_id) await recalcProjectProgress(recommendation.project_id);
       void qc.invalidateQueries({ queryKey: ["tasks"] });
     }
     void qc.invalidateQueries({ queryKey: ["recent_summary"] });
@@ -234,6 +236,7 @@ export function SessionPanel({
     }
     if (markTaskDone && taskId) {
       await supabase.from("tasks").update({ status: "done", done_at: new Date().toISOString() }).eq("id", taskId);
+      if (recommendation.project_id) await recalcProjectProgress(recommendation.project_id);
       void qc.invalidateQueries({ queryKey: ["tasks"] });
     }
     setBusy(false);

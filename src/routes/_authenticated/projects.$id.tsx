@@ -194,7 +194,21 @@ function ProjectPage() {
     count_done: form.count_done,
     weekly_target: numOrNull(form.weekly_target),
   });
-  const progress = computeProgress(typeFields(), doneThisWeek);
+  const tasksQuery = useQuery({
+    queryKey: ["tasks", id],
+    enabled: !isNew,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tasks")
+        .select("*")
+        .eq("project_id", id)
+        .neq("status", "dropped")
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  const progress = computeProgress(typeFields(), doneThisWeek, tasksQuery.data ?? []);
   const [planning, setPlanning] = useState(false);
   const [firstTasks, setFirstTasks] = useState<
     { title: string; est_minutes: string; energy: string; kept: boolean }[]

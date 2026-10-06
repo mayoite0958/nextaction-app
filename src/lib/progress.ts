@@ -33,11 +33,10 @@ const clamp = (n: number) => Math.min(100, Math.max(0, Math.round(n)));
 export function computeProgress(
   p: Pick<ProjectRow, "project_type" | "milestones" | "count_done" | "count_total" | "weekly_target">,
   doneThisWeek = 0,
+  tasks: TaskLite[] = [],
 ): number {
   const type = projectType(p.project_type);
-  if (type === "finish_line") {
-    return clamp(parseMilestones(p.milestones).reduce((s, m) => s + (m.done ? m.weight : 0), 0));
-  }
+  if (type === "finish_line") return finishLineProgress(parseMilestones(p.milestones), tasks);
   if (type === "countable") {
     return p.count_total ? clamp(((p.count_done ?? 0) / p.count_total) * 100) : 0;
   }
@@ -63,4 +62,47 @@ export async function fetchWeekCounts(): Promise<Record<string, number>> {
   const out: Record<string, number> = {};
   for (const s of data ?? []) if (s.project_id) out[s.project_id] = (out[s.project_id] ?? 0) + 1;
   return out;
+}
+
+export type TaskLite = { status: string | null; milestone: string | null };
+
+const norm = (s: string | null | undefined) => (s ?? "").trim().toLowerCase();
+
+/**
+ * Finish-line progress: done milestones count fully; ticked tasks fill in
+ * the milestone they belong to. Tasks with no milestone share the weight of
+ * unfinished milestones that have no tasks of their own. With no milestones,
+ * progress is simply done tasks / all tasks.
+ */
+function finishLineProgress(milestones: Milestone[], allTasks: TaskLite[]): number {
+  const tasks = allTasks.filter((t) => t.status !== "dropped");
+  const frac = (ts: TaskLite[]) => (ts.length ? ts.filter((t) => t.status === "done").length / ts.length : 0);
+  const ms = milestones.filter((m) => m.title.trim());
+  if (!ms.length) return clamp(frac(tasks) * 100);
+  const titles = new Set(ms.map((m) => norm(m.title)));
+  const loose = tasks.filter((t) => !titles.has(norm(t.milestone)));
+  let total = 0;
+  let looseWeight = 0;
+  for (const m of ms) {
+    if (m.done) { total += m.weight; continue; }
+    const own = tasks.filter((t) => norm(t.milestone) === norm(m.title));
+    if (own.length) total += m.weight * frac(own);
+    else looseWeight += m.weight;
+  }
+  total += looseWeight * frac(loose);
+  return clamp(total);
+}
+
+/** Recalculate and save a project's progress (e.g. after ticking a task). */
+export async function recalcProjectProgress(projectId: string): Promise<number | null> {
+  const [{ data: p }, { data: tasks }] = await Promise.all([
+    supabase.from("projects").select("*").eq("id", projectId).maybeSingle(),
+    supabase.from("tasks").select("status,milestone").eq("project_id", projectId),
+  ]);
+  if (!p) return null;
+  let week = 0;
+  if (projectType(p.project_type) === "ongoing") week = (await fetchWeekCounts())[projectId] ?? 0;
+  const pct = computeProgress(p, week, tasks ?? []);
+  if (pct !== p.progress_percent) await supabase.from("projects").update({ progress_percent: pct }).eq("id", projectId);
+  return pct;
 }
