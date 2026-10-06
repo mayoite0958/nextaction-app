@@ -81,6 +81,38 @@ function Today() {
   const [energy, setEnergy] = useState<Energy>("Medium");
   const [asking, setAsking] = useState(false);
   const [askError, setAskError] = useState<string | null>(null);
+  const [resume, setResume] = useState<{ id: string; startedAt: string } | null>(null);
+  const [resumeAction, setResumeAction] = useState<string | null>(null);
+
+  // Bring back a session that was still running when the page reloaded.
+  useEffect(() => {
+    void (async () => {
+      const { data } = await supabase
+        .from("sessions")
+        .select("*")
+        .eq("status", "active")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!data?.recommended_action) return;
+      setTimeMin(String(data.time_available_min ?? 30));
+      if (data.energy) setEnergy(data.energy as Energy);
+      setResumeAction(data.recommended_action);
+      setResume({ id: data.id, startedAt: data.work_started_at ?? data.created_at ?? new Date().toISOString() });
+      setRecommendation((r) => r ?? {
+        project_id: data.project_id,
+        project_name: data.project_name,
+        next_action: data.recommended_action,
+        done_looks_like: data.done_looks_like,
+        why: data.reason,
+        clarifying_question: null,
+        task_id: data.task_id,
+        new_task_title: null,
+        est_minutes: null,
+        resource_id: data.resource_id,
+      } as Recommendation);
+    })();
+  }, []);
 
   async function ask(rejectedActions: string[]) {
     setAsking(true);
@@ -219,10 +251,11 @@ function Today() {
             )}
             {recommendation.next_action && (
               <SessionPanel
-                key={recommendation.next_action}
+                key={`${recommendation.next_action}${resume ? resume.id : ""}`}
                 recommendation={recommendation}
                 timeMin={Math.max(1, Number.parseInt(timeMin, 10) || 30)}
                 energy={energy}
+                resume={resume && recommendation.next_action === resumeAction ? resume : undefined}
                 currentProgress={
                   projects.find((p) => p.id === recommendation.project_id)?.progress_percent ?? null
                 }
