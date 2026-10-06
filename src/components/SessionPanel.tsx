@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MicButton } from "@/components/MicButton";
 import { ActiveSession } from "@/components/ActiveSession";
 import { useQueryClient } from "@tanstack/react-query";
@@ -32,12 +32,14 @@ export function SessionPanel({
   timeMin,
   energy,
   resume,
+  autoStart,
 }: {
   resume?: { id: string; startedAt: string } | undefined;
   recommendation: Recommendation;
   timeMin: number;
   energy: Energy;
   currentProgress?: number | null;
+  autoStart?: boolean;
 }) {
   const qc = useQueryClient();
   const [stage, setStage] = useState<Stage>(resume ? "working" : "idle");
@@ -108,6 +110,15 @@ export function SessionPanel({
     setStartedAt(now);
     setStage("working");
   }
+
+  const autoStarted = useRef(false);
+  useEffect(() => {
+    if (autoStart && stage === "idle" && !autoStarted.current) {
+      autoStarted.current = true;
+      void start();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoStart, stage]);
 
   async function end() {
     if (!sessionId) return;
