@@ -382,6 +382,19 @@ function Today() {
                     <dd>{relativeTime(p.last_worked_at)}</dd>
                   </div>
                 </dl>
+
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="mt-1 self-start"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    startDirect(p);
+                  }}
+                >
+                  ▶ Start session
+                </Button>
               </Link>
             );
           })}
