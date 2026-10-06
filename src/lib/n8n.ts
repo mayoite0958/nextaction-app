@@ -1,7 +1,7 @@
 import { scoreProjects } from "@/lib/scoring";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
-import { daysLeft } from "@/lib/nextaction";
+import { bucketLabel, daysLeft } from "@/lib/nextaction";
 import { daysSince, fetchRecentSummary, parseTargets } from "@/lib/categories";
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"];
