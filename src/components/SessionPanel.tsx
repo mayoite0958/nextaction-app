@@ -127,7 +127,7 @@ export function SessionPanel({
     const action = recommendation.next_action ?? "";
     const stopped =
       whereStopped.trim() || `${outcome === "Completed" ? "Completed" : "Partly done"}: ${action}`;
-    const { error } = await supabase
+    const { data: updated, error } = await supabase
       .from("sessions")
       .update({
         status: "done",
@@ -139,10 +139,11 @@ export function SessionPanel({
         milestone_moved: milestone,
         ...(recommendation.resource_id ? { resource_used: resourceUsed } : {}),
       })
-      .eq("id", sessionId);
-    if (error) {
+      .eq("id", sessionId)
+      .select("id");
+    if (error || !updated?.length) {
       setBusy(false);
-      toast.error(error.message);
+      toast.error(error?.message ?? "Couldn't save the end of this session. Please try again.");
       return;
     }
     if (taskId && outcome === "Completed") {

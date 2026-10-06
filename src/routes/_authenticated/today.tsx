@@ -113,7 +113,11 @@ function Today() {
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-      if (!data?.recommended_action) return;
+      if (!data?.recommended_action || data.ended_at) return;
+      // Only bring back sessions that could plausibly still be running.
+      const started = new Date(data.work_started_at ?? data.created_at ?? 0).getTime();
+      const limitMs = ((data.time_available_min ?? 30) + 120) * 60_000;
+      if (!started || Date.now() - started > limitMs) return;
       setTimeMin(String(data.time_available_min ?? 30));
       if (data.energy) setEnergy(data.energy as Energy);
       setResumeAction(data.recommended_action);
