@@ -20,6 +20,7 @@ import {
   weekStart,
   type Milestone,
 } from "@/lib/progress";
+import { focusFromEvents, type Focus } from "@/lib/guard";
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"];
 type Stage = "idle" | "working" | "ending" | "review" | "complete?" | "celebrate" | "done";
@@ -54,6 +55,7 @@ export function SessionPanel({
   const [markTaskDone, setMarkTaskDone] = useState(false);
   const [busy, setBusy] = useState(false);
   const [startedAt, setStartedAt] = useState<string | null>(null);
+  const [focus, setFocus] = useState<Focus | null>(null);
   const [taskId, setTaskId] = useState<string | null>(recommendation.task_id);
 
   async function start() {
@@ -150,7 +152,7 @@ export function SessionPanel({
     const events = (eventRows ?? []).map((e) => ({ type: e.type, text: e.text, time: e.ts }));
     let out: SessionEndOutput | null = null;
     try {
-      out = await reportSessionEnd({ project: proj, action, outcome, where_stopped: stopped, events });
+      out = await reportSessionEnd({ project: proj, action, outcome, where_stopped: stopped, events, ...(focus ? { focus } : {}) });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not reach n8n");
     }
@@ -257,13 +259,24 @@ export function SessionPanel({
         sessionId={sessionId}
         startedAt={startedAt}
         projectId={recommendation.project_id}
-        onEnd={() => setStage("ending")}
+        timeMin={timeMin}
+        action={recommendation.next_action ?? "this task"}
+        onEnd={async (workedSec) => {
+          setStage("ending");
+          const { data } = await supabase.from("session_events").select("type,text").eq("session_id", sessionId);
+          setFocus(focusFromEvents(data ?? [], workedSec / 60));
+        }}
       />
     );
 
   if (stage === "ending")
     return (
       <div className="space-y-4 rounded-md border border-border p-4">
+        {focus && (
+          <p className="text-sm text-muted-foreground">
+            Focus: {focus.minutes_on_task} min · {focus.checkins} check-ins · {focus.switches} switches · {focus.away_minutes} min away
+          </p>
+        )}
         <Chips label="How did it go?" options={OUTCOMES} value={outcome} onChange={setOutcome} />
         <div className="space-y-1.5 text-sm">
           <p className="text-muted-foreground">Where did you stop? (optional)</p>
