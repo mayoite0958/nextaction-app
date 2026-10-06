@@ -31,15 +31,17 @@ export function SessionPanel({
   recommendation,
   timeMin,
   energy,
+  resume,
 }: {
+  resume?: { id: string; startedAt: string };
   recommendation: Recommendation;
   timeMin: number;
   energy: Energy;
   currentProgress?: number | null;
 }) {
   const qc = useQueryClient();
-  const [stage, setStage] = useState<Stage>("idle");
-  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [stage, setStage] = useState<Stage>(resume ? "working" : "idle");
+  const [sessionId, setSessionId] = useState<string | null>(resume?.id ?? null);
   const [outcome, setOutcome] = useState("");
   const [whereStopped, setWhereStopped] = useState("");
   const [rightTask, setRightTask] = useState(3);
@@ -54,7 +56,7 @@ export function SessionPanel({
   const [tasksKept, setTasksKept] = useState<boolean[]>([]);
   const [markTaskDone, setMarkTaskDone] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [startedAt, setStartedAt] = useState<string | null>(null);
+  const [startedAt, setStartedAt] = useState<string | null>(resume?.startedAt ?? null);
   const [focus, setFocus] = useState<Focus | null>(null);
   const [taskId, setTaskId] = useState<string | null>(recommendation.task_id);
 
