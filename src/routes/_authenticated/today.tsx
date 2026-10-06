@@ -82,6 +82,7 @@ function Today() {
   const [asking, setAsking] = useState(false);
   const [askError, setAskError] = useState<string | null>(null);
   const [resume, setResume] = useState<{ id: string; startedAt: string } | null>(null);
+  const [resumeAction, setResumeAction] = useState<string | null>(null);
 
   // Bring back a session that was still running when the page reloaded.
   useEffect(() => {
@@ -96,6 +97,7 @@ function Today() {
       if (!data?.recommended_action) return;
       setTimeMin(String(data.time_available_min ?? 30));
       if (data.energy) setEnergy(data.energy as Energy);
+      setResumeAction(data.recommended_action);
       setResume({ id: data.id, startedAt: data.work_started_at ?? data.created_at ?? new Date().toISOString() });
       setRecommendation((r) => r ?? {
         project_id: data.project_id,
@@ -249,11 +251,11 @@ function Today() {
             )}
             {recommendation.next_action && (
               <SessionPanel
-                key={recommendation.next_action}
+                key={`${recommendation.next_action}${resume ? resume.id : ""}`}
                 recommendation={recommendation}
                 timeMin={Math.max(1, Number.parseInt(timeMin, 10) || 30)}
                 energy={energy}
-                resume={resume && resume.id ? resume : undefined}
+                resume={resume && recommendation.next_action === resumeAction ? resume : undefined}
                 currentProgress={
                   projects.find((p) => p.id === recommendation.project_id)?.progress_percent ?? null
                 }

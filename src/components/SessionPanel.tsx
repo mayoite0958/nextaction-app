@@ -33,7 +33,7 @@ export function SessionPanel({
   energy,
   resume,
 }: {
-  resume?: { id: string; startedAt: string };
+  resume?: { id: string; startedAt: string } | undefined;
   recommendation: Recommendation;
   timeMin: number;
   energy: Energy;
