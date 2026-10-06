@@ -26,6 +26,9 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Link to="/today" className="hover:text-foreground" activeProps={{ className: "text-foreground" }}>
               Today
             </Link>
+            <Link to="/calendar" className="hover:text-foreground" activeProps={{ className: "text-foreground" }}>
+              Calendar
+            </Link>
             <Link to="/resources" className="hover:text-foreground" activeProps={{ className: "text-foreground" }}>
               Resources
             </Link>

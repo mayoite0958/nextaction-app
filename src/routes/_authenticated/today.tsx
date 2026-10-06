@@ -364,7 +364,18 @@ function Today() {
                     </span>
                   </div>
                   <div className="mt-1 h-2 overflow-hidden rounded-full bg-muted">
-                    <div className="h-full bg-primary" style={{ width: `${p.progress_percent ?? 0}%` }} />
+                    <div
+                      className="h-full bg-primary"
+                      style={{
+                        width: `${
+                          projectType(p.project_type) === "ongoing"
+                            ? p.weekly_target
+                              ? Math.min(100, Math.round(((weekQuery.data?.[p.id] ?? 0) / p.weekly_target) * 100))
+                              : 0
+                            : (p.progress_percent ?? 0)
+                        }%`,
+                      }}
+                    />
                   </div>
                 </div>
 
