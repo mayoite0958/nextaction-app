@@ -26,7 +26,11 @@ import { focusFromEvents, type Focus } from "@/lib/guard";
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"];
 type Stage = "idle" | "working" | "ending" | "review" | "complete?" | "celebrate" | "done";
 
-const OUTCOMES = ["Completed", "Materially advanced", "Not really"];
+const OUTCOMES = [
+  { label: "✅ Done", value: "Completed" },
+  { label: "👍 Made progress", value: "Materially advanced" },
+  { label: "😕 Not really", value: "Not really" },
+];
 
 export function SessionPanel({
   recommendation,
@@ -47,11 +51,14 @@ export function SessionPanel({
   const qc = useQueryClient();
   const [stage, setStage] = useState<Stage>(resume ? "working" : "idle");
   const [sessionId, setSessionId] = useState<string | null>(resume?.id ?? null);
-  const [outcome, setOutcome] = useState("");
   const [whereStopped, setWhereStopped] = useState("");
-  const [rightTask, setRightTask] = useState(3);
-  const [lessStuck, setLessStuck] = useState(3);
-  const [milestone, setMilestone] = useState(false);
+  const [rightTask, setRightTask] = useState<number | null>(null);
+  const [ratingOpen, setRatingOpen] = useState(false);
+  const [ratingBusy, setRatingBusy] = useState(false);
+  const [summarizing, setSummarizing] = useState(false);
+  const endingRef = useRef(false);
+  const [lessStuck, setLessStuck] = useState<number | null>(null);
+  const [milestone, setMilestone] = useState<boolean | null>(null);
   const [resourceUsed, setResourceUsed] = useState<boolean | null>(null);
   const [project, setProject] = useState<ProjectRow | null>(null);
   const [milestones, setMilestones] = useState<Milestone[]>([]);
@@ -123,21 +130,37 @@ export function SessionPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoStart, stage]);
 
-  async function end() {
-    if (!sessionId) return;
-    if (!outcome) { toast.error("Pick an outcome."); return; }
+  useEffect(() => {
+    if (!ratingOpen) return;
+    const timer = setTimeout(() => setRatingOpen(false), 10000);
+    return () => clearTimeout(timer);
+  }, [ratingOpen]);
+
+  async function rateSuggestion(value: number) {
+    if (!sessionId || ratingBusy) return;
+    setRatingBusy(true);
+    const { data, error } = await supabase.from("sessions").update({ right_task: value }).eq("id", sessionId).select("id");
+    setRatingBusy(false);
+    if (error || !data?.length) { toast.error(error?.message ?? "Could not save your feedback. Try again."); return; }
+    setRightTask(value);
+    setRatingOpen(false);
+    void qc.invalidateQueries({ queryKey: ["calendar"] });
+  }
+
+  async function end(selectedOutcome: string) {
+    if (!sessionId || endingRef.current) return;
+    endingRef.current = true;
     setBusy(true);
     const action = recommendation.next_action ?? "";
-    const stopped =
-      whereStopped.trim() || `${outcome === "Completed" ? "Completed" : "Partly done"}: ${action}`;
+    const stopped = whereStopped.trim();
     const { data: updated, error } = await supabase
       .from("sessions")
       .update({
         status: "done",
         ended_at: new Date().toISOString(),
-        outcome,
-        where_stopped: stopped,
-        right_task: rightTask,
+        outcome: selectedOutcome,
+        where_stopped: stopped || null,
+        right_task: null,
         less_stuck: lessStuck,
         milestone_moved: milestone,
         ...(recommendation.resource_id ? { resource_used: resourceUsed } : {}),
@@ -145,15 +168,22 @@ export function SessionPanel({
       .eq("id", sessionId)
       .select("id");
     if (error || !updated?.length) {
+      endingRef.current = false;
       setBusy(false);
       toast.error(error?.message ?? "Couldn't save the end of this session. Please try again.");
       return;
     }
-    if (taskId && outcome === "Completed") {
+    setBusy(false);
+    setStage("review");
+    setRatingOpen(true);
+    setSummarizing(true);
+    void qc.invalidateQueries({ queryKey: ["calendar"] });
+    if (taskId && selectedOutcome === "Completed") {
       await supabase.from("tasks").update({ status: "done", done_at: new Date().toISOString() }).eq("id", taskId);
       if (recommendation.project_id) await recalcProjectProgress(recommendation.project_id);
       void qc.invalidateQueries({ queryKey: ["tasks"] });
     }
+    void qc.invalidateQueries({ queryKey: ["projects"] });
     void qc.invalidateQueries({ queryKey: ["recent_summary"] });
     void qc.invalidateQueries({ queryKey: ["week_counts"] });
     let proj: ProjectRow | null = null;
@@ -170,7 +200,7 @@ export function SessionPanel({
     const events = (eventRows ?? []).map((e) => ({ type: e.type, text: e.text, time: e.ts }));
     let out: SessionEndOutput | null = null;
     try {
-      out = await reportSessionEnd({ project: proj, action, outcome, where_stopped: stopped, events, ...(focus ? { focus } : {}) });
+      out = await reportSessionEnd({ project: proj, action, outcome: selectedOutcome, where_stopped: stopped, events, ...(focus ? { focus } : {}) });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not reach n8n");
     }
@@ -186,15 +216,24 @@ export function SessionPanel({
       })),
     );
     setPlusCount(0);
-    setBusy(false);
-    setStage("review");
+    setSummarizing(false);
   }
 
   const type = projectType(project?.project_type);
 
   async function saveProgress() {
-    if (!project) { setStage("done"); return; }
     setBusy(true);
+    if (sessionId) {
+      const { data, error } = await supabase.from("sessions").update({
+        where_stopped: whereStopped.trim() || null,
+        less_stuck: lessStuck,
+        milestone_moved: milestone,
+        ...(recommendation.resource_id ? { resource_used: resourceUsed } : {}),
+      }).eq("id", sessionId).select("id");
+      if (error || !data?.length) { setBusy(false); toast.error(error?.message ?? "Could not save the details. Try again."); return; }
+      void qc.invalidateQueries({ queryKey: ["calendar"] });
+    }
+    if (!project) { setBusy(false); setStage("done"); return; }
     let doneThisWeek = 0;
     if (type === "ongoing") {
       const { count } = await supabase
@@ -291,34 +330,16 @@ export function SessionPanel({
 
   if (stage === "ending")
     return (
-      <div className="space-y-4 rounded-md border border-border p-4">
-        {focus && (
-          <p className="text-sm text-muted-foreground">
-            Focus {focus.minutes_on_task} min · {focus.detours} detours ({focus.away_minutes} min away) · {focus.checkins} check-ins
-          </p>
-        )}
-        <Chips label="How did it go?" options={OUTCOMES} value={outcome} onChange={setOutcome} />
-        <div className="space-y-1.5 text-sm">
-          <p className="text-muted-foreground">Where did you stop? (optional)</p>
-          <div className="flex gap-2">
-            <Input value={whereStopped} onChange={(e) => setWhereStopped(e.target.value)} />
-            <MicButton onText={(t) => setWhereStopped((w) => (w ? `${w} ${t}` : t))} />
-          </div>
+      <div className="space-y-3 rounded-md border border-border p-4">
+        <p className="font-display text-lg font-semibold">How did it go?</p>
+        <div className="grid gap-2">
+          {OUTCOMES.map((option) => (
+            <Button key={option.value} variant="outline" className="h-14 w-full text-base" onClick={() => end(option.value)} disabled={busy}>
+              {option.label}
+            </Button>
+          ))}
         </div>
-        <Chips label="Right task?" options={["1", "2", "3", "4", "5"]} value={String(rightTask)} onChange={(v) => setRightTask(Number(v))} />
-        <Chips label="Less stuck?" options={["1", "2", "3", "4", "5"]} value={String(lessStuck)} onChange={(v) => setLessStuck(Number(v))} />
-        <Chips label="Milestone moved?" options={["Yes", "No"]} value={milestone ? "Yes" : "No"} onChange={(v) => setMilestone(v === "Yes")} />
-        {recommendation.resource_id && (
-          <Chips
-            label="Did you use the resource?"
-            options={["Yes", "No"]}
-            value={resourceUsed == null ? "" : resourceUsed ? "Yes" : "No"}
-            onChange={(v) => setResourceUsed(v === "Yes")}
-          />
-        )}
-        <Button onClick={end} disabled={busy || !outcome}>
-          {busy ? "Finishing…" : "Done"}
-        </Button>
+        {busy && <p role="status" className="text-sm text-muted-foreground">Saving…</p>}
       </div>
     );
 
@@ -355,21 +376,50 @@ export function SessionPanel({
 
   // review
   return (
-    <div className="space-y-4 rounded-md border border-border p-4">
+    <div className="space-y-4">
+      <p role="status" className="text-sm text-primary">Session saved.</p>
+      {ratingOpen && (
+        <div className="space-y-2 rounded-md border border-border p-3">
+          <p className="text-sm font-medium">Was this a good suggestion?</p>
+          <div className="grid grid-cols-3 gap-2">
+            {[{ icon: "👎", value: 1, label: "Poor suggestion" }, { icon: "😐", value: 3, label: "Okay suggestion" }, { icon: "👍", value: 5, label: "Good suggestion" }].map((rating) => (
+              <Button key={rating.value} variant="outline" aria-label={rating.label} title={rating.label} className="h-11 text-xl" disabled={ratingBusy} onClick={() => rateSuggestion(rating.value)}>{rating.icon}</Button>
+            ))}
+          </div>
+        </div>
+      )}
+      {rightTask != null && <p className="text-xs text-muted-foreground">Feedback saved.</p>}
+      {focus && <p className="text-sm text-muted-foreground">Focus {focus.minutes_on_task} min · {focus.detours} detours ({focus.away_minutes} min away) · {focus.checkins} check-ins</p>}
+      {summarizing && <p role="status" className="text-sm text-muted-foreground">Writing your summary…</p>}
+      {nextMove}
+      <details className="group">
+        <summary className="cursor-pointer text-sm text-muted-foreground underline underline-offset-4">Add details (optional)</summary>
+        <div className="mt-4 space-y-4">
+          <div className="space-y-1.5 text-sm">
+            <label htmlFor={`stopped-${sessionId}`} className="text-muted-foreground">Where did you stop?</label>
+            <div className="flex gap-2">
+              <Input id={`stopped-${sessionId}`} className="min-w-0" value={whereStopped} onChange={(e) => setWhereStopped(e.target.value)} />
+              <MicButton onText={(t) => setWhereStopped((w) => (w ? `${w} ${t}` : t))} />
+            </div>
+          </div>
+          <Chips label="Less stuck?" options={["1", "2", "3", "4", "5"]} value={lessStuck == null ? "" : String(lessStuck)} onChange={(v) => setLessStuck(Number(v))} />
+          <Chips label="Milestone moved?" options={["Yes", "No"]} value={milestone == null ? "" : milestone ? "Yes" : "No"} onChange={(v) => setMilestone(v === "Yes")} />
+          {recommendation.resource_id && <Chips label="Did you use the resource?" options={["Yes", "No"]} value={resourceUsed == null ? "" : resourceUsed ? "Yes" : "No"} onChange={(v) => setResourceUsed(v === "Yes")} />}
       {project && type === "finish_line" && milestones.length > 0 && (
         <div className="space-y-2 text-sm">
           <p className="text-muted-foreground">Tick the milestones you finished</p>
           {milestones.map((m, i) => (
-            <button
+            <Button
               key={i}
+              variant="outline"
               type="button"
               onClick={() => setMilestones((ms) => ms.map((x, j) => (j === i ? { ...x, done: !x.done } : x)))}
-              className={`flex w-full items-center gap-3 rounded-md border p-3 text-left ${m.done ? "border-primary bg-primary/10" : "border-border"}`}
+              className={`h-auto flex w-full items-center gap-3 whitespace-normal rounded-md border p-3 text-left ${m.done ? "border-primary bg-primary/10" : "border-border"}`}
             >
               <span className="text-lg">{m.done ? "☑" : "☐"}</span>
               <span className="flex-1">{m.title}</span>
               <span className="text-muted-foreground">{m.weight}%</span>
-            </button>
+            </Button>
           ))}
         </div>
       )}
@@ -398,24 +448,26 @@ export function SessionPanel({
           )}
         </div>
       ) : null}
-      {nextMove}
-      <Button size="sm" onClick={saveProgress} disabled={busy}>
-        {project ? "Save to project" : "Done"}
+      <Button size="sm" onClick={saveProgress} disabled={busy || summarizing}>
+        {busy ? "Saving…" : "Save details"}
       </Button>
+        </div>
+      </details>
     </div>
   );
 }
 
 function CheckRow({ checked, onToggle, label }: { checked: boolean; onToggle: () => void; label: string }) {
   return (
-    <button
+    <Button
+      variant="outline"
       type="button"
       onClick={onToggle}
-      className={`flex w-full items-center gap-3 rounded-md border p-2.5 text-left ${checked ? "border-primary bg-primary/10" : "border-border"}`}
+      className={`h-auto flex w-full items-center gap-3 whitespace-normal rounded-md border p-2.5 text-left ${checked ? "border-primary bg-primary/10" : "border-border"}`}
     >
       <span>{checked ? "☑" : "☐"}</span>
       <span className="flex-1">{label}</span>
-    </button>
+    </Button>
   );
 }
 

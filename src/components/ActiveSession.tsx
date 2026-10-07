@@ -242,7 +242,7 @@ export function ActiveSession({
 
   return (
     <div className="space-y-4 rounded-md border border-border p-4">
-      <div className="flex items-baseline justify-between">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-2">
         <span className={`text-sm ${paused ? "text-muted-foreground" : "text-primary"}`}>
           {detourAt ? `On a detour · ${Math.max(0, Math.floor((now - new Date(detourAt).getTime()) / 60000))} min` : paused ? "Paused" : "Session in progress"}
         </span>
@@ -251,16 +251,23 @@ export function ActiveSession({
       {detourAt ? (
         <Button size="lg" className="h-16 w-full text-lg" onClick={backOnTrack}>▶ Back on track</Button>
       ) : sheet == null && (
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-        <Button variant="outline" onClick={() => tap("step_done")} disabled={paused}>✓ Step done</Button>
-        <Button variant="outline" onClick={() => tap("stuck")} disabled={paused}>😣 I'm stuck</Button>
-        <Button variant="outline" onClick={() => setNoteOpen((o) => !o)}>🎤 Quick note</Button>
-        <Button variant={paused ? "default" : "outline"} onClick={() => tap(paused ? "resume" : "pause")}>
-          {paused ? "▶ Resume" : "⏸ Pause"}
-        </Button>
-        <Button variant="outline" onClick={openDetour}>↪ Detour / switch</Button>
-        <Button onClick={() => onEnd(secs)}>End session</Button>
-      </div>
+       <div className="space-y-3">
+         <div className="grid grid-cols-[repeat(auto-fit,minmax(48px,1fr))] gap-1.5">
+           {[
+             { icon: "✓", label: "Done step", run: () => tap("step_done"), disabled: paused },
+             { icon: "😣", label: "Stuck", run: () => tap("stuck"), disabled: paused },
+             { icon: "🎤", label: "Note", run: () => setNoteOpen((o) => !o) },
+             { icon: paused ? "▶" : "⏸", label: paused ? "Resume" : "Pause", run: () => tap(paused ? "resume" : "pause") },
+             { icon: "↪", label: "Detour", run: openDetour },
+           ].map((control) => (
+             <Button key={control.label} title={control.label} aria-label={`${control.icon} ${control.label}`} variant={control.label === "Resume" ? "default" : "outline"} disabled={control.disabled} onClick={control.run} className="h-16 min-w-0 flex-col gap-1 whitespace-normal px-0.5 py-2">
+               <span aria-hidden="true" className="text-xl leading-none">{control.icon}</span>
+               <span className="w-full text-center text-[10px] leading-3">{control.label}</span>
+             </Button>
+           ))}
+         </div>
+         <Button className="h-11 w-full" onClick={() => onEnd(secs)}>End session</Button>
+       </div>
       )}
       {sheet === "ask" && (
         <Banner text="What pulled you away? (optional)">

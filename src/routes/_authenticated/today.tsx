@@ -34,6 +34,8 @@ export const Route = createFileRoute("/_authenticated/today")({
         content: "Your active projects, closest deadlines first, and your urgent/long-term balance.",
       },
       { property: "og:title", content: "Today — Next Action" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         property: "og:description",
         content: "Your active projects, closest deadlines first, and your urgent/long-term balance.",

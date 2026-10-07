@@ -13,6 +13,8 @@ export const Route = createFileRoute("/")({
           "Next Action keeps your urgent work and your long-term work in balance, and tells you what to do next.",
       },
       { property: "og:title", content: "Next Action — one clear move at a time" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         property: "og:description",
         content:

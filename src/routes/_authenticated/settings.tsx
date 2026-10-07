@@ -39,6 +39,8 @@ export const Route = createFileRoute("/_authenticated/settings")({
       { title: "Settings — Next Action" },
       { name: "description", content: "Change how Next Action prioritises and talks to you." },
       { property: "og:title", content: "Settings — Next Action" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         property: "og:description",
         content: "Change how Next Action prioritises and talks to you.",
