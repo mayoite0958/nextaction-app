@@ -26,6 +26,8 @@ export function CategoryBalance({
           {names.map((n) => {
             const target = targets[n] ?? 0;
             const actual = totalDone ? Math.round(((summary[n]?.count ?? 0) / totalDone) * 100) : 0;
+            const ofTarget = target > 0 ? Math.round((actual / target) * 100) : actual > 0 ? 100 : 0;
+            const met = target > 0 && actual >= target;
             return (
               <li key={n} className="text-sm">
                 <div className="flex justify-between gap-2">
@@ -35,12 +37,18 @@ export function CategoryBalance({
                   </span>
                 </div>
                 <div className="relative mt-1.5 h-2 overflow-hidden rounded-full bg-muted">
-                  <div className="h-full bg-primary" style={{ width: `${actual}%` }} />
                   <div
-                    className="absolute top-0 h-full w-0.5 bg-foreground"
-                    style={{ left: `${Math.min(99.5, target)}%` }}
+                    className={met ? "h-full bg-primary" : "h-full bg-urgent"}
+                    style={{ width: `${Math.min(100, ofTarget)}%` }}
                   />
                 </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {target > 0
+                    ? met
+                      ? `Target reached (${ofTarget}% of target)`
+                      : `${ofTarget}% of your target`
+                    : "No target set"}
+                </p>
               </li>
             );
           })}
