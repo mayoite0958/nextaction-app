@@ -46,6 +46,9 @@ function AuthPage() {
           options: { emailRedirectTo: "https://nextaction-app.lovable.app" },
         });
         if (error) throw error;
+        if (data.user && (data.user.identities?.length ?? 0) === 0) {
+          throw new Error("This email already has an account. Use \"I already have an account\" to sign in.");
+        }
         if (!data.session) {
           setSent(true);
           return;
