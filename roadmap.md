@@ -9,6 +9,6 @@
 - [x] Project form: plan-project output.first_tasks shown as editable ticked list; on save insert ticked into tasks (milestone = first milestone title, status todo, source ai)
 - [x] All external resource links open in a new tab (Resources, project pages, Today resource card)
 - [x] Connect your phone (Settings + onboarding + /connect-phone + Android share) — needs real iCloud shortcut link and capture address
-- [ ] Phone session controls: equal-size short-label buttons; verify at 360px
-- [ ] One-tap session ending, optional ten-second suggestion rating and collapsed details
-- [ ] Replace recommendation-rating wording throughout the app
+- [x] Phone session controls: equal-size short-label buttons; verified at 360px with simulated data
+- [x] One-tap session ending, optional ten-second suggestion rating and collapsed details
+- [x] Replace recommendation-rating wording throughout the app

@@ -183,6 +183,7 @@ export function SessionPanel({
       if (recommendation.project_id) await recalcProjectProgress(recommendation.project_id);
       void qc.invalidateQueries({ queryKey: ["tasks"] });
     }
+    void qc.invalidateQueries({ queryKey: ["projects"] });
     void qc.invalidateQueries({ queryKey: ["recent_summary"] });
     void qc.invalidateQueries({ queryKey: ["week_counts"] });
     let proj: ProjectRow | null = null;
@@ -221,7 +222,6 @@ export function SessionPanel({
   const type = projectType(project?.project_type);
 
   async function saveProgress() {
-    if (!project) { setStage("done"); return; }
     setBusy(true);
     if (sessionId) {
       const { data, error } = await supabase.from("sessions").update({
@@ -233,6 +233,7 @@ export function SessionPanel({
       if (error || !data?.length) { setBusy(false); toast.error(error?.message ?? "Could not save the details. Try again."); return; }
       void qc.invalidateQueries({ queryKey: ["calendar"] });
     }
+    if (!project) { setBusy(false); setStage("done"); return; }
     let doneThisWeek = 0;
     if (type === "ongoing") {
       const { count } = await supabase
