@@ -36,7 +36,7 @@ export function SessionPanel({
   autoStart,
   onSwitch,
 }: {
-  onSwitch?: (t: SwitchTarget) => void;
+  onSwitch?: ((t: SwitchTarget) => void) | undefined;
   resume?: { id: string; startedAt: string } | undefined;
   recommendation: Recommendation;
   timeMin: number;

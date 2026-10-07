@@ -56,7 +56,7 @@ export function ActiveSession({
   onEnd,
   onSwitch,
 }: {
-  onSwitch?: (t: SwitchTarget) => void;
+  onSwitch?: ((t: SwitchTarget) => void) | undefined;
   sessionId: string;
   startedAt: string;
   projectId: string | null;
@@ -192,8 +192,9 @@ export function ActiveSession({
       where_stopped: `Switched to ${task ? task.title : project.name}`,
     }).eq("id", sessionId).select("id,task_id");
     if (error || !upd?.length) { setBusy(false); toast.error(error?.message ?? "Couldn't end this session. Try again."); return; }
-    if (pickOutcome === "Completed" && upd[0].task_id) {
-      await supabase.from("tasks").update({ status: "done", done_at: new Date().toISOString() }).eq("id", upd[0].task_id);
+    const doneTask = upd[0]?.task_id;
+    if (pickOutcome === "Completed" && doneTask) {
+      await supabase.from("tasks").update({ status: "done", done_at: new Date().toISOString() }).eq("id", doneTask);
     }
     void qc.invalidateQueries({ queryKey: ["week_counts"] });
     void qc.invalidateQueries({ queryKey: ["tasks"] });
@@ -281,7 +282,7 @@ export function ActiveSession({
           </div>
           <select value={pickId} onChange={(e) => setPickId(e.target.value)} className="w-full rounded-md border border-border bg-background p-2">
             <option value="">Switch to…</option>
-            {(targets.data?.projects ?? []).filter((p) => p.id !== projectId || true).map((p) => (
+            {(targets.data?.projects ?? []).map((p) => (
               <optgroup key={p.id} label={p.name}>
                 <option value={`p:${p.id}`}>{p.name}</option>
                 {(targets.data?.tasks ?? []).filter((t) => t.project_id === p.id).map((t) => (
