@@ -86,22 +86,25 @@ function Today() {
   const [autoStart, setAutoStart] = useState(false);
 
   // Start a session straight from a project card, without a recommendation.
-  function startDirect(p: ProjectRow) {
+  function startDirect(p: Pick<ProjectRow, "id" | "name" | "next_likely_action">, task?: { id: string; title: string } | null) {
     setAskError(null);
     setAutoStart(true);
+    setResume(null);
     setRecommendation({
       project_id: p.id,
       project_name: p.name,
-      next_action: p.next_likely_action || `Work on ${p.name}`,
+      next_action: task?.title || p.next_likely_action || `Work on ${p.name}`,
       done_looks_like: null,
       why: null,
       clarifying_question: null,
-      task_id: null,
+      task_id: task?.id ?? null,
       new_task_title: null,
       est_minutes: null,
       resource_id: null,
     } as Recommendation);
+    setSessionNonce((n) => n + 1);
   }
+  const [sessionNonce, setSessionNonce] = useState(0);
 
   // Bring back a session that was still running when the page reloaded.
   useEffect(() => {
@@ -275,7 +278,8 @@ function Today() {
             )}
             {recommendation.next_action && (
               <SessionPanel
-                key={`${recommendation.next_action}${resume ? resume.id : ""}`}
+                key={`${recommendation.next_action}${resume ? resume.id : ""}${sessionNonce}`}
+                onSwitch={({ project, task }) => startDirect(project, task)}
                 recommendation={recommendation}
                 timeMin={Math.max(1, Number.parseInt(timeMin, 10) || 30)}
                 energy={energy}
