@@ -259,7 +259,7 @@ function CalendarPage() {
                   {s.outcome && <p><span className="text-muted-foreground">Outcome:</span> {s.outcome}</p>}
                   {s.where_stopped && <p><span className="text-muted-foreground">Stopped at:</span> {s.where_stopped}</p>}
                   <p className="text-xs text-muted-foreground">
-                    Right task {s.right_task ?? "–"}/5 · Less stuck {s.less_stuck ?? "–"}/5 · Milestone moved {s.milestone_moved == null ? "–" : s.milestone_moved ? "yes" : "no"}
+                    Was this a good suggestion? {s.right_task ?? "–"}/5 · Less stuck {s.less_stuck ?? "–"}/5 · Milestone moved {s.milestone_moved == null ? "–" : s.milestone_moved ? "yes" : "no"}
                   </p>
                 </div>
               )) : <p className="text-muted-foreground">None</p>}

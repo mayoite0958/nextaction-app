@@ -24,6 +24,8 @@ export const Route = createFileRoute("/_authenticated/onboarding")({
       { title: "Set up Next Action" },
       { name: "description", content: "Tell Next Action how you work so it can prioritise for you." },
       { property: "og:title", content: "Set up Next Action" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         property: "og:description",
         content: "Tell Next Action how you work so it can prioritise for you.",

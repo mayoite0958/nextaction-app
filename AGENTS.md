@@ -16,3 +16,4 @@
 - Signed-in pages live under `src/routes/_authenticated/`; `/` and `/auth` are public.
 - Role templates, timezone list and date helpers live in `src/lib/nextaction.ts` so onboarding and settings stay in sync.
 - Never create or alter database tables in this project; the schema is owned by the user.
+- Session outcome saves must finish the session before optional feedback or AI work; optional ratings stay null until chosen, so skipping never fabricates feedback.
