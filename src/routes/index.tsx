@@ -46,10 +46,10 @@ function Landing() {
       </p>
       <div className="mt-10 flex flex-wrap gap-3">
         <Button asChild size="lg">
-          <Link to="/auth">Get started</Link>
+          <Link to="/auth" search={{ mode: "signup" }}>Get started</Link>
         </Button>
         <Button asChild size="lg" variant="secondary">
-          <Link to="/auth">
+          <Link to="/auth" search={{}}>
             I already have an account
           </Link>
         </Button>
