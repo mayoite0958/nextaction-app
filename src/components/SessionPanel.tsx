@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { MicButton } from "@/components/MicButton";
-import { ActiveSession } from "@/components/ActiveSession";
+import { ActiveSession, type SwitchTarget } from "@/components/ActiveSession";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -34,7 +34,9 @@ export function SessionPanel({
   energy,
   resume,
   autoStart,
+  onSwitch,
 }: {
+  onSwitch?: ((t: SwitchTarget) => void) | undefined;
   resume?: { id: string; startedAt: string } | undefined;
   recommendation: Recommendation;
   timeMin: number;
@@ -278,6 +280,7 @@ export function SessionPanel({
         projectId={recommendation.project_id}
         timeMin={timeMin}
         action={recommendation.next_action ?? "this task"}
+        onSwitch={onSwitch}
         onEnd={async (workedSec) => {
           setStage("ending");
           const { data } = await supabase.from("session_events").select("type,text").eq("session_id", sessionId);
@@ -291,7 +294,7 @@ export function SessionPanel({
       <div className="space-y-4 rounded-md border border-border p-4">
         {focus && (
           <p className="text-sm text-muted-foreground">
-            Focus: {focus.minutes_on_task} min · {focus.checkins} check-ins · {focus.switches} switches · {focus.away_minutes} min away
+            Focus {focus.minutes_on_task} min · {focus.detours} detours ({focus.away_minutes} min away) · {focus.checkins} check-ins
           </p>
         )}
         <Chips label="How did it go?" options={OUTCOMES} value={outcome} onChange={setOutcome} />

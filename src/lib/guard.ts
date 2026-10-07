@@ -12,7 +12,7 @@ export function guardMode(on: boolean, interval: number) {
   return on ? `checkins_${interval}` : "off";
 }
 
-export type Focus = { minutes_on_task: number; checkins: number; switches: number; away_minutes: number };
+export type Focus = { minutes_on_task: number; checkins: number; switches: number; detours: number; away_minutes: number };
 
 export function focusFromEvents(
   events: { type: string | null; text: string | null }[],
@@ -24,11 +24,13 @@ export function focusFromEvents(
     if (e.type === "checkin") checkins++;
     if (e.type === "switch") { switches++; if (mins) { away += mins; switchedAway += mins; } }
     if (e.type === "away_ok") away += mins;
+    if (e.type === "back_on_track") away += mins;
   }
   return {
     minutes_on_task: Math.max(0, Math.round(workedMinutes - switchedAway)),
     checkins,
     switches,
+    detours: switches,
     away_minutes: away,
   };
 }

@@ -20,7 +20,11 @@ const LABELS: Record<string, string> = {
   no_response: "· No reply to check-in",
   away_ok: "↩ Away, part of the task",
   extend: "+15 min",
+  back_on_track: "▶ Back on track",
 };
+type Proj = { id: string; name: string; next_likely_action: string | null };
+type Task = { id: string; title: string; project_id: string | null };
+export type SwitchTarget = { project: Proj; task: Task | null };
 
 function notify(title: string, body: string) {
   try {
@@ -50,7 +54,9 @@ export function ActiveSession({
   timeMin,
   action,
   onEnd,
+  onSwitch,
 }: {
+  onSwitch?: ((t: SwitchTarget) => void) | undefined;
   sessionId: string;
   startedAt: string;
   projectId: string | null;
@@ -89,6 +95,22 @@ export function ActiveSession({
   const [switchReason, setSwitchReason] = useState<string | null>(null);
   const [away, setAway] = useState<number | null>(null);
   const [overtimeSeen, setOvertimeSeen] = useState(0);
+  const [sheet, setSheet] = useState<null | "ask" | "pick">(null);
+  const [reason, setReason] = useState("");
+  const [pickOutcome, setPickOutcome] = useState("");
+  const [pickId, setPickId] = useState("");
+  const [busy, setBusy] = useState(false);
+  const targets = useQuery({
+    queryKey: ["switch_targets"],
+    enabled: sheet === "pick",
+    queryFn: async () => {
+      const [p, t] = await Promise.all([
+        supabase.from("projects").select("id,name,next_likely_action").eq("status", "active").order("name"),
+        supabase.from("tasks").select("id,title,project_id").in("status", ["todo", "doing"]),
+      ]);
+      return { projects: (p.data ?? []) as Proj[], tasks: (t.data ?? []) as Task[] };
+    },
+  });
   const nextCheck = useRef<number | null>(null);
   const hiddenAt = useRef<number | null>(null);
 
@@ -116,12 +138,14 @@ export function ActiveSession({
   const mine = all.filter((e) => e.session_id === sessionId);
   const lastToggle = [...mine].reverse().find((e) => e.type === "pause" || e.type === "resume");
   const paused = lastToggle?.type === "pause";
+  const lastDetour = [...mine].reverse().find((e) => e.type === "switch" || e.type === "back_on_track" || e.type === "resume");
+  const detourAt = paused && lastDetour?.type === "switch" && !/^\d+ min away$/.test(lastDetour.text ?? "") ? lastDetour.ts : null;
 
   useEffect(() => {
-    if (paused) return;
+    if (paused && !detourAt) return;
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
-  }, [paused]);
+  }, [paused, detourAt]);
 
   async function tap(type: string, text: string | null = null) {
     const { error } = await supabase.from("session_events").insert({ session_id: sessionId, type, text });
@@ -133,6 +157,52 @@ export function ActiveSession({
     await qc.invalidateQueries({ queryKey: ["session_events_today"] });
   }
 
+  async function openDetour() {
+    setCheckin(null);
+    setReason("");
+    setSheet("ask");
+    if (!paused) await tap("pause");
+  }
+  async function quickDetour() {
+    setSheet(null);
+    await tap("switch", reason.trim() || "Detour");
+  }
+  async function backOnTrack() {
+    const mins = detourAt ? Math.max(0, Math.round((Date.now() - new Date(detourAt).getTime()) / 60000)) : 0;
+    await tap("back_on_track", `${mins} min`);
+    await tap("resume");
+  }
+  async function cancelDetour() {
+    setSheet(null);
+    await tap("resume");
+  }
+  async function confirmSwitch() {
+    const list = targets.data;
+    if (!list || !pickOutcome || !pickId) return;
+    const [kind, id] = pickId.split(":");
+    const task = kind === "t" ? list.tasks.find((t) => t.id === id) ?? null : null;
+    const project = list.projects.find((p) => p.id === (task ? task.project_id : id));
+    if (!project) return;
+    setBusy(true);
+    if (reason.trim()) await tap("switch", reason.trim());
+    const { data: upd, error } = await supabase.from("sessions").update({
+      status: "done",
+      ended_at: new Date().toISOString(),
+      outcome: pickOutcome,
+      where_stopped: `Switched to ${task ? task.title : project.name}`,
+    }).eq("id", sessionId).select("id,task_id");
+    if (error || !upd?.length) { setBusy(false); toast.error(error?.message ?? "Couldn't end this session. Try again."); return; }
+    const doneTask = upd[0]?.task_id;
+    if (pickOutcome === "Completed" && doneTask) {
+      await supabase.from("tasks").update({ status: "done", done_at: new Date().toISOString() }).eq("id", doneTask);
+    }
+    void qc.invalidateQueries({ queryKey: ["week_counts"] });
+    void qc.invalidateQueries({ queryKey: ["tasks"] });
+    setBusy(false);
+    setSheet(null);
+    onSwitch?.({ project, task });
+  }
+
   async function saveNote() {
     if (!note.trim()) return;
     await tap("note", note.trim());
@@ -140,7 +210,7 @@ export function ActiveSession({
     setNoteOpen(false);
   }
 
-  const secs = Math.floor(workedMs(startedAt, mine, paused ? new Date(lastToggle?.ts ?? now).getTime() : now) / 1000);
+  const secs = Math.floor(workedMs(startedAt, mine, paused ? new Date(lastToggle?.ts ?? Date.now()).getTime() : now) / 1000);
   const extends_ = mine.filter((e) => e.type === "extend").length;
   const plannedSec = (timeMin + extends_ * 15) * 60;
   const overtime = secs >= plannedSec && overtimeSeen < plannedSec;
@@ -149,12 +219,12 @@ export function ActiveSession({
   useEffect(() => {
     if (!guard.on || paused) return;
     if (nextCheck.current == null) nextCheck.current = Math.round((timeMin * 60) / 2);
-    if (secs >= nextCheck.current && !checkin && switchReason == null) {
+    if (secs >= nextCheck.current && !checkin && switchReason == null && sheet == null) {
       nextCheck.current = secs + guard.interval * 60;
       setCheckin({ at: Date.now() });
       notify(`Still on ${action}?`, "Tap to answer in Next Action.");
     }
-  }, [secs, guard.on, guard.interval, paused, checkin, switchReason, timeMin, action]);
+  }, [secs, guard.on, guard.interval, paused, checkin, switchReason, sheet, timeMin, action]);
 
   // No reply within 2 minutes.
   useEffect(() => {
@@ -174,10 +244,13 @@ export function ActiveSession({
     <div className="space-y-4 rounded-md border border-border p-4">
       <div className="flex items-baseline justify-between">
         <span className={`text-sm ${paused ? "text-muted-foreground" : "text-primary"}`}>
-          {paused ? "Paused" : "Session in progress"}
+          {detourAt ? `On a detour · ${Math.max(0, Math.floor((now - new Date(detourAt).getTime()) / 60000))} min` : paused ? "Paused" : "Session in progress"}
         </span>
         <span className="font-display text-3xl font-semibold tabular-nums">{clock}</span>
       </div>
+      {detourAt ? (
+        <Button size="lg" className="h-16 w-full text-lg" onClick={backOnTrack}>▶ Back on track</Button>
+      ) : sheet == null && (
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         <Button variant="outline" onClick={() => tap("step_done")} disabled={paused}>✓ Step done</Button>
         <Button variant="outline" onClick={() => tap("stuck")} disabled={paused}>😣 I'm stuck</Button>
@@ -185,13 +258,49 @@ export function ActiveSession({
         <Button variant={paused ? "default" : "outline"} onClick={() => tap(paused ? "resume" : "pause")}>
           {paused ? "▶ Resume" : "⏸ Pause"}
         </Button>
-        <Button variant="outline" onClick={() => tap("switch")}>↪ Switched on purpose</Button>
+        <Button variant="outline" onClick={openDetour}>↪ Detour / switch</Button>
         <Button onClick={() => onEnd(secs)}>End session</Button>
       </div>
+      )}
+      {sheet === "ask" && (
+        <Banner text="What pulled you away? (optional)">
+          <Input autoFocus value={reason} onChange={(e) => setReason(e.target.value)} className="min-w-0 flex-1" />
+          <MicButton onText={(t) => setReason((r) => (r ? `${r} ${t}` : t))} />
+          <div className="flex w-full flex-wrap gap-2">
+            <Button size="sm" onClick={quickDetour}>Quick detour</Button>
+            <Button size="sm" variant="outline" onClick={() => setSheet("pick")}>Switch to another project</Button>
+            <Button size="sm" variant="ghost" onClick={cancelDetour}>Cancel</Button>
+          </div>
+        </Banner>
+      )}
+      {sheet === "pick" && (
+        <Banner text="How did this session go?">
+          <div className="flex w-full flex-wrap gap-2">
+            {["Completed", "Materially advanced", "Not really"].map((o) => (
+              <Button key={o} size="sm" variant={pickOutcome === o ? "default" : "outline"} onClick={() => setPickOutcome(o)}>{o}</Button>
+            ))}
+          </div>
+          <select value={pickId} onChange={(e) => setPickId(e.target.value)} className="w-full rounded-md border border-border bg-background p-2">
+            <option value="">Switch to…</option>
+            {(targets.data?.projects ?? []).map((p) => (
+              <optgroup key={p.id} label={p.name}>
+                <option value={`p:${p.id}`}>{p.name}</option>
+                {(targets.data?.tasks ?? []).filter((t) => t.project_id === p.id).map((t) => (
+                  <option key={t.id} value={`t:${t.id}`}>— {t.title}</option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+          <div className="flex w-full gap-2">
+            <Button size="sm" onClick={confirmSwitch} disabled={busy || !pickOutcome || !pickId}>Save and switch</Button>
+            <Button size="sm" variant="ghost" onClick={cancelDetour}>Cancel</Button>
+          </div>
+        </Banner>
+      )}
       {checkin && (
         <Banner text={`Still on ${action}?`}>
           <Button size="sm" onClick={() => { setCheckin(null); void tap("checkin"); }}>✓ Still on it</Button>
-          <Button size="sm" variant="outline" onClick={() => { setCheckin(null); setSwitchReason(""); }}>↪ I switched</Button>
+          <Button size="sm" variant="outline" onClick={() => { void openDetour(); }}>↪ I switched</Button>
         </Banner>
       )}
       {switchReason != null && (
