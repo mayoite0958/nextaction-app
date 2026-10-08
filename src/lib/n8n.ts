@@ -268,6 +268,10 @@ export function draftRecommendation(ctx: RecommendContext, time_min: number, ene
   };
 }
 
+export class RecommendParseError extends Error {
+  constructor() { super("Couldn't read the AI's answer"); this.name = "RecommendParseError"; }
+}
+
 export async function requestRecommendation(
   input: { time_min: number; energy: Energy; rejected_actions: string[] },
   ctxIn?: RecommendContext,
@@ -338,8 +342,22 @@ export async function requestRecommendation(
     },
   });
 
-  const output = await readOutput(res);
+  const raw = await res.text();
+  if (!res.ok) throw new Error(`n8n replied ${res.status}: ${raw.slice(0, 200)}`);
+  let output: Record<string, unknown> | null = null;
+  try {
+    let parsed: unknown = JSON.parse(raw);
+    if (Array.isArray(parsed)) parsed = parsed[0];
+    const root = (parsed ?? null) as Record<string, unknown> | null;
+    const inner = root && typeof root["output"] === "object" && root["output"] ? (root["output"] as Record<string, unknown>) : root;
+    if (inner && typeof inner === "object" && typeof inner["next_action"] === "string" && inner["next_action"].trim()) output = inner;
+  } catch { /* handled below */ }
+  if (!output) {
+    console.error("[recommend] Couldn't read the AI's answer. Raw response:", raw);
+    throw new RecommendParseError();
+  }
   const str = (v: unknown) => (typeof v === "string" && v.trim() ? v : null);
+  const firstId = Array.isArray(output["resource_ids"]) ? str((output["resource_ids"] as unknown[])[0]) : null;
   const est = Number(output["est_minutes"]);
   return {
     project_id: str(output["project_id"]),
@@ -350,7 +368,7 @@ export async function requestRecommendation(
     clarifying_question: str(output["clarifying_question"]),
     task_id: str(output["task_id"]),
     new_task_title: str(output["new_task_title"]),
-    resource_id: str(output["resource_id"]),
+    resource_id: firstId ?? str(output["resource_id"]),
     est_minutes: output["est_minutes"] != null && Number.isFinite(est) && est > 0 ? Math.round(est) : null,
   };
 }

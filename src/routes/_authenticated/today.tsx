@@ -23,6 +23,7 @@ import {
   draftRecommendation,
   loadRecommendContext,
   requestRecommendation,
+  RecommendParseError,
   type Energy,
   type Recommendation,
   type RecommendContext,
@@ -252,18 +253,19 @@ function Today() {
       if (id !== reqId.current) return;
       setRefining(false);
       setAsking(false);
-      setSlow(true);
-      reqId.current++; // keep the draft; ignore a late answer
+      setSlow(true); // keep the draft visible, but still show the AI answer when it arrives
     }, 8000);
 
     try {
       const rec = await aiPromise;
       if (id !== reqId.current) return;
-      setRecommendation((prev) => (prev && prev.project_id === rec.project_id ? { ...prev, ...rec } : rec));
+      setRecommendation(rec);
       setIsDraft(false);
+      setSlow(false);
     } catch (e) {
       if (id !== reqId.current) return;
-      if (ctxValue.current && draftRecommendation(ctxValue.current, t, energy)) setSlow(true);
+      if (e instanceof RecommendParseError) setAskError(e.message);
+      else if (ctxValue.current && draftRecommendation(ctxValue.current, t, energy)) setSlow(true);
       else setAskError(e instanceof Error ? e.message : "Could not reach n8n");
     } finally {
       clearTimeout(timer);
@@ -349,7 +351,7 @@ function Today() {
               </SelectContent>
             </Select>
           </label>
-          <Button size="sm" onClick={() => ask(rejected)} disabled={asking}>
+          <Button size="sm" onClick={() => ask(rejected, { fresh: !!recommendation })} disabled={asking}>
             {asking ? "Thinking…" : recommendation ? "Ask again" : "Get my next action"}
           </Button>
           {recommendation?.next_action && (
@@ -367,7 +369,7 @@ function Today() {
             className="rec-in mt-4 space-y-3 text-sm transition-opacity duration-300"
           >
             {isDraft && (
-              <Badge variant="outline" className="border-primary text-primary">Suggested</Badge>
+              <Badge variant="outline" className="border-primary text-primary">Quick suggestion</Badge>
             )}
             {recommendation.project_name && (
               <p>
