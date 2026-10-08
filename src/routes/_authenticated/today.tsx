@@ -368,8 +368,10 @@ function Today() {
             key={recommendation.project_id ?? "none"}
             className="rec-in mt-4 space-y-3 text-sm transition-opacity duration-300"
           >
-            {isDraft && (
+            {isDraft ? (
               <Badge variant="outline" className="border-primary text-primary">Quick suggestion</Badge>
+            ) : (
+              <Badge className="bg-primary text-primary-foreground">AI suggestion</Badge>
             )}
             {recommendation.project_name && (
               <p>
