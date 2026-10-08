@@ -1,3 +1,4 @@
+import { InfoTip } from "@/components/InfoTip";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -85,7 +86,7 @@ function AuthPage() {
       ) : (
         <form onSubmit={submit} className="panel mt-8 space-y-4 p-6">
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email" className="flex items-center">Email<InfoTip k="email" /></Label>
             <Input
               id="email"
               type="email"
@@ -96,7 +97,7 @@ function AuthPage() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password" className="flex items-center">Password<InfoTip k="password" /></Label>
             <Input
               id="password"
               type="password"

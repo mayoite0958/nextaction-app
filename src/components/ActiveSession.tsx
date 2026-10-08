@@ -333,7 +333,7 @@ export function ActiveSession({
         <div className="flex gap-2">
           <Input
             autoFocus
-            placeholder="Say or type a note"
+            placeholder="e.g. Need a better hero image"
             value={note}
             onChange={(e) => setNote(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && saveNote()}

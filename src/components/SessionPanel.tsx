@@ -343,7 +343,7 @@ export function SessionPanel({
   if (stage === "ending")
     return (
       <div className="space-y-3 rounded-md border border-border p-4">
-        <p className="font-display text-lg font-semibold">How did it go?</p>
+        <p className="flex items-center font-display text-lg font-semibold">How did it go?<InfoTip k="outcome" /></p>
         <div className="grid gap-2">
           {OUTCOMES.map((option) => (
             <Button key={option.value} variant="outline" className="h-14 w-full text-base" onClick={() => end(option.value)} disabled={busy}>
