@@ -22,6 +22,8 @@ import {
   projectType,
   weekStart,
   type Milestone,
+  fetchProjectWeekCount,
+  touchProjectWorked,
 } from "@/lib/progress";
 import { focusFromEvents, type Focus } from "@/lib/guard";
 
@@ -185,6 +187,7 @@ export function SessionPanel({
       toast.error(error?.message ?? "Couldn't save the end of this session. Please try again.");
       return;
     }
+    await touchProjectWorked(recommendation.project_id);
     setBusy(false);
     setStage("review");
     setRatingOpen(true);
@@ -248,13 +251,7 @@ export function SessionPanel({
     if (!project) { setBusy(false); setStage("done"); return; }
     let doneThisWeek = 0;
     if (type === "ongoing") {
-      const { count } = await supabase
-        .from("sessions")
-        .select("id", { count: "exact", head: true })
-        .eq("project_id", project.id)
-        .eq("status", "done")
-        .gte("ended_at", weekStart().toISOString());
-      doneThisWeek = count ?? 0;
+      doneThisWeek = await fetchProjectWeekCount(project.id).catch(() => 0);
     }
     const next = {
       ...project,

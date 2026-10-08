@@ -3,6 +3,32 @@ import type { Database, Json } from "@/integrations/supabase/types";
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"];
 
+/** Sessions shorter than this don't count toward habit progress or the balance box. */
+export const MIN_COUNTED_SEC = 120;
+export function countsAsWork(s: { work_started_at?: string | null; created_at?: string | null; ended_at: string | null }) {
+  const start = s.work_started_at ?? s.created_at;
+  if (!start || !s.ended_at) return false;
+  return new Date(s.ended_at).getTime() - new Date(start).getTime() >= MIN_COUNTED_SEC * 1000;
+}
+
+/** Done sessions this week (2+ minutes) for one project. */
+export async function fetchProjectWeekCount(projectId: string): Promise<number> {
+  const { data, error } = await supabase
+    .from("sessions")
+    .select("work_started_at,created_at,ended_at")
+    .eq("project_id", projectId)
+    .eq("status", "done")
+    .gte("ended_at", weekStart().toISOString());
+  if (error) throw error;
+  return (data ?? []).filter(countsAsWork).length;
+}
+
+/** Mark a project as worked on now (every project type). */
+export async function touchProjectWorked(projectId: string | null | undefined) {
+  if (!projectId) return;
+  await supabase.from("projects").update({ last_worked_at: new Date().toISOString() }).eq("id", projectId);
+}
+
 export type ProjectType = "finish_line" | "countable" | "ongoing";
 export const PROJECT_TYPES: { value: ProjectType; label: string; hint: string }[] = [
   { value: "finish_line", label: "Has an end goal", hint: "Finishes when a goal is reached, tracked by milestones" },
@@ -55,12 +81,12 @@ export function weekStart(): Date {
 export async function fetchWeekCounts(): Promise<Record<string, number>> {
   const { data, error } = await supabase
     .from("sessions")
-    .select("project_id")
+    .select("project_id,work_started_at,created_at,ended_at")
     .eq("status", "done")
     .gte("ended_at", weekStart().toISOString());
   if (error) throw error;
   const out: Record<string, number> = {};
-  for (const s of data ?? []) if (s.project_id) out[s.project_id] = (out[s.project_id] ?? 0) + 1;
+  for (const s of (data ?? []).filter(countsAsWork)) if (s.project_id) out[s.project_id] = (out[s.project_id] ?? 0) + 1;
   return out;
 }
 

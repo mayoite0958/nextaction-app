@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { MicButton } from "@/components/MicButton";
 import { parseGuard } from "@/lib/guard";
+import { touchProjectWorked } from "@/lib/progress";
 import { HandyPanel } from "@/components/HandyPanel";
 
 type Ev = { id: string; ts: string | null; type: string | null; text: string | null; session_id: string | null };
@@ -195,6 +196,7 @@ export function ActiveSession({
       where_stopped: `Switched to ${task ? task.title : project.name}`,
     }).eq("id", sessionId).select("id,task_id");
     if (error || !upd?.length) { setBusy(false); toast.error(error?.message ?? "Couldn't end this session. Try again."); return; }
+    await touchProjectWorked(projectId);
     const doneTask = upd[0]?.task_id;
     if (pickOutcome === "Completed" && doneTask) {
       await supabase.from("tasks").update({ status: "done", done_at: new Date().toISOString() }).eq("id", doneTask);
