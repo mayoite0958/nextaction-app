@@ -412,7 +412,7 @@ function Today() {
             {(() => {
               const rp = projects.find((p) => p.id === recommendation.project_id);
               const since = rp ? daysSince(rp.last_worked_at) : null;
-              return rp && since != null && since >= 2 ? <RestartCard project={rp} /> : null;
+              return rp && (since == null || since >= 2) ? <RestartCard project={rp} /> : null;
             })()}
             <ResurfaceCard id={recommendation.resource_id} onOpen={() => setOpenedResource(recommendation.resource_id)} />
             {recommendation.next_action && (
