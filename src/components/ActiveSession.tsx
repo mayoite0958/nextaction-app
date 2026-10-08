@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { MicButton } from "@/components/MicButton";
 import { parseGuard } from "@/lib/guard";
+import { HandyPanel } from "@/components/HandyPanel";
 
 type Ev = { id: string; ts: string | null; type: string | null; text: string | null; session_id: string | null };
 
@@ -100,6 +101,7 @@ export function ActiveSession({
   const [pickOutcome, setPickOutcome] = useState("");
   const [pickId, setPickId] = useState("");
   const [busy, setBusy] = useState(false);
+  const [handy, setHandy] = useState<{ kind: "session_start" | "step_done" | "stuck"; n: number }>({ kind: "session_start", n: 0 });
   const targets = useQuery({
     queryKey: ["switch_targets"],
     enabled: sheet === "pick",
@@ -154,6 +156,7 @@ export function ActiveSession({
       await supabase.from("project_notes").insert({ project_id: projectId, type: "note", text, source: "session" });
     }
     setNow(Date.now());
+    if (type === "step_done" || type === "stuck") setHandy((h) => ({ kind: type, n: h.n + 1 }));
     await qc.invalidateQueries({ queryKey: ["session_events_today"] });
   }
 
@@ -342,6 +345,7 @@ export function ActiveSession({
           <Button onClick={saveNote} disabled={!note.trim()}>Save</Button>
         </div>
       )}
+      <HandyPanel sessionId={sessionId} projectId={projectId} action={action} trigger={handy} events={mine} />
       {all.length > 0 && (
         <div>
           <p className="text-xs uppercase tracking-widest text-muted-foreground">Today's taps</p>

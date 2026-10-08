@@ -432,3 +432,34 @@ async function readOutput(res: Response): Promise<Record<string, unknown>> {
   if (!output || typeof output !== "object") throw new Error("n8n's reply had no output object.");
   return output;
 }
+
+/** n8n webhook that picks saved resources useful for the current task (production URL). */
+export const N8N_MATCH_RESOURCES_URL =
+  "https://vidhikaindustries.app.n8n.cloud/webhook/9b038ede-095e-4f9d-9d14-74e12c64c26d";
+
+export type MatchedResource = { id: string; why: string | null };
+
+/** Ask n8n which saved resources help right now. Accepts several reply shapes. */
+export async function matchResources(body: {
+  trigger: "session_start" | "step_done" | "stuck";
+  session_id: string;
+  project_id: string | null;
+  action: string;
+  recent_events: { type: string | null; text: string | null }[];
+  resources: { id: string; title: string | null; topic: string | null; problem_helped: string | null; resource_type: string | null; project_id: string | null }[];
+}): Promise<MatchedResource[]> {
+  const res = await callN8nWebhook(N8N_MATCH_RESOURCES_URL, { body });
+  const o = await readOutput(res);
+  const list = (o["resources"] ?? o["matches"] ?? o["resource_ids"]) as unknown;
+  if (!Array.isArray(list)) return [];
+  return list
+    .map((r): MatchedResource | null => {
+      if (typeof r === "string") return { id: r, why: null };
+      const x = (r ?? {}) as Record<string, unknown>;
+      const id = x["resource_id"] ?? x["id"];
+      if (typeof id !== "string" || !id) return null;
+      const why = x["why"] ?? x["reason"];
+      return { id, why: typeof why === "string" && why.trim() ? why.trim() : null };
+    })
+    .filter((r): r is MatchedResource => r !== null);
+}
