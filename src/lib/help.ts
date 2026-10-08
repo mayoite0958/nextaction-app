@@ -3,6 +3,7 @@ export const HELP = {
   name: { what: "What the app should call you.", example: "Priya" },
   email: { what: "The email address you sign in with.", example: "priya@gmail.com" },
   password: { what: "At least 6 characters. Only you know it.", example: "a long phrase you'll remember" },
+  passwordSignin: { what: "The password you set when you created your account.", example: "the same password you signed up with" },
   urgentLabel: { what: "Name for work with near deadlines that can't wait.", example: "Applications & recruiter actions" },
   longtermLabel: { what: "Name for work that pays off later.", example: "Skills & portfolio" },
   split: { what: "Roughly how you want to split your time between urgent and long-term work.", example: "70% urgent, 30% long-term" },

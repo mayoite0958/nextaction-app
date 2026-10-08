@@ -98,11 +98,12 @@ function AuthPage() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password" className="flex items-center">Password<InfoTip k="password" /></Label>
+            <Label htmlFor="password" className="flex items-center">Password<InfoTip k={mode === "signin" ? "passwordSignin" : "password"} /></Label>
             <Input
               id="password"
               type="password"
               autoComplete={mode === "signin" ? "current-password" : "new-password"}
+              placeholder={mode === "signin" ? "Your password" : "Choose a password (6+ characters)"}
               required
               minLength={6}
               value={password}
