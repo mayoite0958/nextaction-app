@@ -461,11 +461,11 @@ function ProjectPage() {
         {form.project_type === "finish_line" && (
           <div className="grid gap-3 rounded-md border border-border p-4">
             <Field label="Done looks like" help="doneDefinition">
-              <Textarea value={form.done_definition} onChange={(e) => set("done_definition", e.target.value)} />
+              <Textarea placeholder="e.g. Signed offer letter from a design team" value={form.done_definition} onChange={(e) => set("done_definition", e.target.value)} />
             </Field>
             <div className="flex items-center justify-between gap-2">
-              <span className="text-sm text-muted-foreground">
-                Milestones · weights total {weightTotal}%{weightTotal !== 100 && " (aim for 100)"}
+              <span className="flex flex-wrap items-center text-sm text-muted-foreground">
+                <InfoTip k="milestones" />Milestones · weights total {weightTotal}%{weightTotal !== 100 && " (aim for 100)"}
               </span>
               <Button type="button" size="sm" variant="secondary" onClick={generate} disabled={planning}>
                 {planning ? "Generating…" : "Generate milestones with AI"}

@@ -1,3 +1,4 @@
+import { InfoTip } from "@/components/InfoTip";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -134,14 +135,17 @@ function ResourcesPage() {
       <p className="mt-2 text-sm text-muted-foreground">Save a link and what it helps with. AI sorts it for you.</p>
 
       <section className="panel mt-6 space-y-3 p-5">
-        <Input placeholder="Link (https://…)" type="url" value={url} onChange={(e) => setUrl(e.target.value)} />
+        <span className="flex items-center text-sm text-muted-foreground">Link<InfoTip k="resourceUrl" /></span>
+        <Input placeholder="e.g. https://youtube.com/watch?v=…" type="url" value={url} onChange={(e) => setUrl(e.target.value)} />
         {youtubeThumb(url) && (
           <img src={youtubeThumb(url)!} alt="Video preview" className="aspect-video w-40 rounded-md object-cover" />
         )}
+        <span className="flex items-center text-sm text-muted-foreground">What does this help with?<InfoTip k="resourceNote" /></span>
         <div className="flex gap-2">
-          <Input placeholder="What does this help with?" value={note} onChange={(e) => setNote(e.target.value)} />
+          <Input placeholder="e.g. Better portfolio case studies" value={note} onChange={(e) => setNote(e.target.value)} />
           <MicButton onText={(t) => setNote((n) => (n ? `${n} ${t}` : t))} />
         </div>
+        <span className="flex items-center text-sm text-muted-foreground">Project<InfoTip k="resourceProject" /></span>
         <select className={selectCls} value={projectId} onChange={(e) => setProjectId(e.target.value)}>
           <option value={NONE}>No project (let AI pick)</option>
           {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -149,7 +153,8 @@ function ResourcesPage() {
         <Button onClick={save} disabled={saving || !note.trim()}>{saving ? "Sorting…" : "Save resource"}</Button>
       </section>
 
-      <Input className="mt-8" placeholder="Search resources" value={search} onChange={(e) => setSearch(e.target.value)} />
+      <span className="mt-8 flex items-center text-sm text-muted-foreground">Search<InfoTip k="search" /></span>
+      <Input className="mt-1" placeholder="e.g. portfolio" value={search} onChange={(e) => setSearch(e.target.value)} />
 
       {groups.length === 0 ? (
         <p className="mt-4 text-sm text-muted-foreground">{resQ.isLoading ? "Loading…" : "No resources yet."}</p>
@@ -161,11 +166,17 @@ function ResourcesPage() {
               {items.map((r) =>
                 editing?.id === r.id ? (
                   <li key={r.id} className="panel space-y-2 p-4">
-                    <Input placeholder="Title" value={editing.title ?? ""} onChange={(e) => setEditing({ ...editing, title: e.target.value })} />
-                    <Input placeholder="Link" value={editing.url ?? ""} onChange={(e) => setEditing({ ...editing, url: e.target.value })} />
-                    <Input placeholder="What does this help with?" value={editing.user_note ?? ""} onChange={(e) => setEditing({ ...editing, user_note: e.target.value })} />
-                    <Input placeholder="Topic" value={editing.topic ?? ""} onChange={(e) => setEditing({ ...editing, topic: e.target.value })} />
-                    <Input placeholder="Problem it helps with" value={editing.problem_helped ?? ""} onChange={(e) => setEditing({ ...editing, problem_helped: e.target.value })} />
+                    <span className="flex items-center text-xs text-muted-foreground">Title<InfoTip k="resourceTitle" /></span>
+                    <Input placeholder="e.g. Figma auto-layout tutorial" value={editing.title ?? ""} onChange={(e) => setEditing({ ...editing, title: e.target.value })} />
+                    <span className="flex items-center text-xs text-muted-foreground">Link<InfoTip k="resourceUrl" /></span>
+                    <Input placeholder="e.g. https://youtube.com/watch?v=…" value={editing.url ?? ""} onChange={(e) => setEditing({ ...editing, url: e.target.value })} />
+                    <span className="flex items-center text-xs text-muted-foreground">What does this help with?<InfoTip k="resourceNote" /></span>
+                    <Input placeholder="e.g. Better portfolio case studies" value={editing.user_note ?? ""} onChange={(e) => setEditing({ ...editing, user_note: e.target.value })} />
+                    <span className="flex items-center text-xs text-muted-foreground">Topic<InfoTip k="topic" /></span>
+                    <Input placeholder="e.g. Portfolio design" value={editing.topic ?? ""} onChange={(e) => setEditing({ ...editing, topic: e.target.value })} />
+                    <span className="flex items-center text-xs text-muted-foreground">Problem it helps with<InfoTip k="problemHelped" /></span>
+                    <Input placeholder="e.g. Case studies feel too long" value={editing.problem_helped ?? ""} onChange={(e) => setEditing({ ...editing, problem_helped: e.target.value })} />
+                    <span className="flex items-center text-xs text-muted-foreground">Type<InfoTip k="resourceType" /></span>
                     <select className={selectCls} value={editing.resource_type ?? ""} onChange={(e) => setEditing({ ...editing, resource_type: e.target.value || null })}>
                       <option value="">Other</option>
                       {TYPES.map((t) => <option key={t} value={t}>{t}</option>)}

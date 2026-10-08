@@ -1,3 +1,4 @@
+import { InfoTip } from "@/components/InfoTip";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -59,16 +60,17 @@ export function TaskList({ projectId }: { projectId: string }) {
   const tasks = q.data ?? [];
   return (
     <section className="panel mt-6 p-5">
-      <h2 className="font-display text-sm font-semibold uppercase tracking-widest text-primary">Tasks</h2>
+      <h2 className="flex items-center font-display text-sm font-semibold uppercase tracking-widest text-primary">Tasks<InfoTip k="task" /></h2>
+      <p className="mt-1 flex flex-wrap items-center text-xs text-muted-foreground">Minutes<InfoTip k="taskMinutes" /> · Energy<InfoTip k="taskEnergy" /></p>
       <div className="mt-3 flex flex-wrap gap-2">
         <Input
           className="min-w-48 flex-1"
-          placeholder="Add a task"
+          placeholder="e.g. Update portfolio case study 1"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && add()}
         />
-        <Input className="w-24" type="number" min={1} placeholder="min" value={est} onChange={(e) => setEst(e.target.value)} />
+        <Input className="w-24" type="number" min={1} placeholder="e.g. 25" aria-label="Minutes" value={est} onChange={(e) => setEst(e.target.value)} />
         <div className="flex gap-1">
           {ENERGIES.map((en) => (
             <Button key={en} type="button" size="sm" variant={energy === en ? "default" : "outline"} onClick={() => setEnergy(en)}>
