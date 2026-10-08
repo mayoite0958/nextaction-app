@@ -1,6 +1,7 @@
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { SHORTCUT_ICLOUD_URL, shortcutRunUrl, type Device } from "@/lib/phone";
+import { InstallAndroid } from "@/components/InstallAndroid";
 
 /** iPhone / Android / in-app browser instructions. Shared by Settings, onboarding and /connect-phone. */
 export function PhoneSteps({ device, captureKey }: { device: Device; captureKey: string }) {
@@ -38,15 +39,6 @@ export function PhoneSteps({ device, captureKey }: { device: Device; captureKey:
       </div>
     );
   }
-  if (device === "android") {
-    return (
-      <div className="space-y-2 text-sm">
-        <p>
-          <span className="font-medium">Install the app:</span> Chrome ⋮ → Install app
-        </p>
-        <p className="text-muted-foreground">Then tap Share in any app → Next Action</p>
-      </div>
-    );
-  }
+  if (device === "android") return <InstallAndroid />;
   return null;
 }
