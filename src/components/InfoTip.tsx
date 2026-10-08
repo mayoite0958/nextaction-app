@@ -18,7 +18,7 @@ export function InfoTip({ k, text }: { k?: HelpKey; text?: { what: string; examp
           <Info className="h-3.5 w-3.5" />
         </button>
       </PopoverTrigger>
-      <PopoverContent side="top" className="w-[min(18rem,calc(100vw-2rem))] text-sm leading-relaxed">
+      <PopoverContent side="top" collisionPadding={12} className="w-[min(18rem,calc(100vw-2rem))] text-sm leading-relaxed">
         <p>{h.what}</p>
         {h.example && <p className="mt-1 text-muted-foreground">Example: {h.example}</p>}
       </PopoverContent>
