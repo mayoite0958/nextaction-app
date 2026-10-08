@@ -5,6 +5,12 @@ import { APP_ORIGIN } from "@/lib/phone";
 
 type PromptEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> };
 
+// Chrome may fire beforeinstallprompt before this screen mounts; keep it at module level.
+let early: PromptEvent | null = null;
+if (typeof window !== "undefined") {
+  window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); early = e as PromptEvent; });
+}
+
 /** Android install: real install button when Chrome offers it, otherwise clear manual steps. */
 export function InstallAndroid() {
   const [evt, setEvt] = useState<PromptEvent | null>(null);
@@ -14,8 +20,9 @@ export function InstallAndroid() {
   useEffect(() => {
     setOnProd(window.location.origin === APP_ORIGIN);
     if (window.matchMedia("(display-mode: standalone)").matches) setInstalled(true);
-    const onPrompt = (e: Event) => { e.preventDefault(); setEvt(e as PromptEvent); };
-    const onInstalled = () => { setInstalled(true); setEvt(null); };
+    if (early) setEvt(early);
+    const onPrompt = (e: Event) => { e.preventDefault(); early = e as PromptEvent; setEvt(early); };
+    const onInstalled = () => { setInstalled(true); setEvt(null); early = null; };
     window.addEventListener("beforeinstallprompt", onPrompt);
     window.addEventListener("appinstalled", onInstalled);
     return () => {
