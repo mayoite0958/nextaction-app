@@ -484,6 +484,8 @@ function Today() {
         )}
       </section>
 
+      <div className="mt-4"><LogPastWork /></div>
+
       <div className="mt-10 flex items-center justify-between">
         <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
           Active projects

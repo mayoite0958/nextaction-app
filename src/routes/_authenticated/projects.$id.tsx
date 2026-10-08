@@ -346,12 +346,13 @@ function ProjectPage() {
       )}
 
       {!isNew && p && (
-        <div className="mt-4">
+        <div className="mt-4 flex flex-wrap gap-2">
           {showRecap ? (
             <RestartCard project={{ id: p.id, name: p.name, next_likely_action: p.next_likely_action, blocker: p.blocker }} onClose={() => setShowRecap(false)} />
           ) : (
             <Button size="sm" variant="outline" onClick={() => setShowRecap(true)}>👋 Recap</Button>
           )}
+          <LogPastWork projectId={p.id} />
         </div>
       )}
 

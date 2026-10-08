@@ -7,9 +7,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { recalcProjectProgress } from "@/lib/progress";
 
 const OUTCOMES = [
-  { v: "completed", l: "✅ Done" },
-  { v: "materially_advanced", l: "👍 Made progress" },
-  { v: "not_really", l: "😕 Not really" },
+  { v: "Completed", l: "✅ Done" },
+  { v: "Materially advanced", l: "👍 Made progress" },
+  { v: "Not really", l: "😕 Not really" },
 ];
 const MINS = [15, 25, 45, 60, 90];
 
@@ -26,7 +26,7 @@ export function LogPastWork({ projectId }: { projectId?: string }) {
   const [mins, setMins] = useState("25");
   const [taskId, setTaskId] = useState("");
   const [action, setAction] = useState("");
-  const [outcome, setOutcome] = useState("materially_advanced");
+  const [outcome, setOutcome] = useState("Materially advanced");
   const [note, setNote] = useState("");
   const [markDone, setMarkDone] = useState(true);
   const [saving, setSaving] = useState(false);
