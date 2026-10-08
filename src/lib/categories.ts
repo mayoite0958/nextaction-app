@@ -1,3 +1,4 @@
+import { countsAsWork } from "@/lib/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { bucketLabel } from "@/lib/nextaction";
 import type { Json } from "@/integrations/supabase/types";
@@ -31,7 +32,7 @@ export async function fetchRecentSummary(settings: LabelSettings): Promise<Categ
     .gte("ended_at", since);
   if (error) throw error;
   const summary: CategorySummary = {};
-  for (const s of data ?? []) {
+  for (const s of (data ?? []).filter(countsAsWork)) {
     const proj = s.projects as { bucket: string | null } | null;
     const label = bucketLabel(settings, proj?.bucket ?? null);
     const start = s.work_started_at ?? s.created_at;

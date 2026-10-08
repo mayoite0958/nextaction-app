@@ -16,7 +16,7 @@ export function scoreProjects(args: {
   categoryOf: (p: ProjectRow) => string;
   targets: Record<string, number>;
   minutes7d: Record<string, number>;
-  doneSessions: { project_id: string | null; ended_at: string | null }[];
+  doneSessions: { project_id: string | null; ended_at: string | null; work_started_at?: string | null }[];
   openTaskCount: (id: string) => number;
   now?: Date;
 }): { top: Scored[]; others: Scored[] } {
@@ -31,7 +31,7 @@ export function scoreProjects(args: {
     if (!s.project_id || !s.ended_at) continue;
     const c = catOfId.get(s.project_id);
     if (c && (!lastByCat[c] || s.ended_at > lastByCat[c]!)) lastByCat[c] = s.ended_at;
-    if (new Date(s.ended_at).getTime() >= ws) weekCount[s.project_id] = (weekCount[s.project_id] ?? 0) + 1;
+    if (new Date(s.ended_at).getTime() >= ws && countsAsWork(s)) weekCount[s.project_id] = (weekCount[s.project_id] ?? 0) + 1;
   }
   const lateWeek = [5, 6, 0].includes(now.getDay());
 

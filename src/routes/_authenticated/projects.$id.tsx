@@ -175,14 +175,7 @@ function ProjectPage() {
     queryKey: ["project_week", id],
     enabled: !isNew,
     queryFn: async () => {
-      const { count, error } = await supabase
-        .from("sessions")
-        .select("id", { count: "exact", head: true })
-        .eq("project_id", id)
-        .eq("status", "done")
-        .gte("ended_at", weekStart().toISOString());
-      if (error) throw error;
-      return count ?? 0;
+      return fetchProjectWeekCount(id);
     },
   });
   const doneThisWeek = weekQuery.data ?? 0;
