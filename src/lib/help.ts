@@ -54,6 +54,16 @@ export const HELP = {
   summary: { what: "A short summary of the content.", example: "5 tips for tighter case studies" },
   search: { what: "Find saved resources by any word.", example: "portfolio" },
   quickNote: { what: "A quick thought to save with this session.", example: "Need better hero image" },
+  roleTemplate: { what: "A starting setup for your categories and split. Picking one fills in the names for you.", example: "Job seeker" },
+  sessionLengths: { what: "Session lengths you usually like, in minutes, separated by commas.", example: "25, 45, 90" },
+  distractingSites: { what: "Sites that tend to pull you away, separated by commas.", example: "instagram.com, youtube.com" },
+  morningBrief: { what: "A short plan for your day, sent each morning.", example: "On at 8:00" },
+  briefTime: { what: "When the morning brief is sent.", example: "08:00" },
+  whatsapp: { what: "Your WhatsApp number with country code, for messages from the coach.", example: "+91 98765 43210" },
+  emailTag: { what: "A short tag for emails you forward to Next Action.", example: "nextaction" },
+  lastAction: { what: "The last real step you finished on this project.", example: "Sent portfolio to 3 recruiters" },
+  progressNotes: { what: "Anything worth remembering about how it's going.", example: "Recruiters like case study 2 most" },
+  milestoneTitle: { what: "A big step on the way to the goal.", example: "Portfolio ready" },
   role: { what: "Pick the one closest to you. You can change everything after.", example: "Job seeker" },
 } as const satisfies Record<string, { what: string; example?: string }>;
 
