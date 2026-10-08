@@ -29,8 +29,6 @@ import {
 
 const LAST_KEY = "na_last_rec_inputs";
 import type { Database } from "@/integrations/supabase/types";
-import { ExternalLink, ResourceThumb } from "@/components/ResourceThumb";
-import { youtubeWatchUrl } from "@/lib/youtube";
 import { ResurfaceCard } from "@/components/ResurfaceCard";
 import { RestartCard } from "@/components/RestartCard";
 import { daysSince } from "@/lib/categories";
