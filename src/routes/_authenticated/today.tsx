@@ -167,6 +167,22 @@ function Today() {
   const ctxValue = useRef<RecommendContext | null>(null);
   const prefetch = useRef<{ key: string; promise: Promise<Recommendation>; value?: Recommendation } | null>(null);
   const reqId = useRef(0);
+  const alt = useRef<{ key: string; promise: Promise<Recommendation>; value?: Recommendation } | null>(null);
+  const altKey = (t: number, e: Energy, rej: string[]) => `${t}|${e}|${rej.join("\u0001")}`;
+
+  /** Quietly fetch the answer "Not this one" would show, so it appears instantly. */
+  function prefetchAlt(t: number, e: Energy, rej: string[], shown: Recommendation) {
+    if (!shown.next_action) return;
+    const next = [...rej, shown.next_action];
+    const key = altKey(t, e, next);
+    if (alt.current?.key === key) return;
+    const entry: { key: string; promise: Promise<Recommendation>; value?: Recommendation } = {
+      key,
+      promise: loadCtx().then((c) => requestRecommendation({ time_min: t, energy: e, rejected_actions: next }, c)),
+    };
+    entry.promise.then((v) => { entry.value = v; }, () => { if (alt.current === entry) alt.current = null; });
+    alt.current = entry;
+  }
 
   const minutes = () => Math.max(1, Number.parseInt(timeMin, 10) || 30);
 
@@ -220,13 +236,26 @@ function Today() {
     setResume(null);
 
     let aiPromise: Promise<Recommendation>;
-    if (rejectedActions.length === 0 && !opts.fresh) {
+    const altEntry = rejectedActions.length > 0 && alt.current?.key === altKey(t, energy, rejectedActions) ? alt.current : null;
+    if (altEntry) alt.current = null;
+    if (altEntry?.value) {
+      setIsDraft(false);
+      setRefining(false);
+      setAsking(false);
+      setRecommendation(altEntry.value);
+      prefetchAlt(t, energy, rejectedActions, altEntry.value);
+      return;
+    }
+    if (altEntry) {
+      aiPromise = altEntry.promise;
+    } else if (rejectedActions.length === 0 && !opts.fresh) {
       const entry = startPrefetch(t, energy);
       if (entry.value) {
         setIsDraft(false);
         setRefining(false);
         setRecommendation(entry.value);
         prefetch.current = null; // next tap asks again
+        prefetchAlt(t, energy, rejectedActions, entry.value);
         return;
       }
       aiPromise = entry.promise;
@@ -262,6 +291,7 @@ function Today() {
       setRecommendation(rec);
       setIsDraft(false);
       setSlow(false);
+      prefetchAlt(t, energy, rejectedActions, rec);
     } catch (e) {
       if (id !== reqId.current) return;
       if (e instanceof RecommendParseError) setAskError(e.message);
