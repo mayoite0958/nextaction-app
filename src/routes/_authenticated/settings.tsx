@@ -1,3 +1,4 @@
+import { InfoTip } from "@/components/InfoTip";
 import { CHECKIN_INTERVALS, guardMode, parseGuard } from "@/lib/guard";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -233,14 +234,15 @@ function SettingsPage() {
         </h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label>Your name</Label>
+            <Label className="flex items-center">Your name<InfoTip k="name" /></Label>
             <Input
+            placeholder="e.g. Priya"
               value={form.display_name}
               onChange={(e) => set("display_name", e.target.value)}
             />
           </div>
           <div className="space-y-2">
-            <Label>Role template</Label>
+            <Label className="flex items-center">Role template<InfoTip k="roleTemplate" /></Label>
             <Select
               value={form.role_template}
               onValueChange={(v) => {
@@ -275,7 +277,7 @@ function SettingsPage() {
             </Select>
           </div>
           <div className="space-y-2">
-            <Label>Timezone</Label>
+            <Label className="flex items-center">Timezone<InfoTip k="timezone" /></Label>
             <Select value={form.timezone} onValueChange={(v) => set("timezone", v)}>
               <SelectTrigger>
                 <SelectValue />
@@ -290,8 +292,9 @@ function SettingsPage() {
             </Select>
           </div>
           <div className="space-y-2">
-            <Label>Reply language</Label>
+            <Label className="flex items-center">Reply language<InfoTip k="replyLanguage" /></Label>
             <Input
+            placeholder="e.g. English"
               value={form.reply_language}
               onChange={(e) => set("reply_language", e.target.value)}
             />
@@ -305,15 +308,17 @@ function SettingsPage() {
         </h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label>Urgent category name</Label>
+            <Label className="flex items-center">Urgent category name<InfoTip k="urgentLabel" /></Label>
             <Input
+            placeholder="e.g. Applications & recruiter actions"
               value={form.bucket_urgent_label}
               onChange={(e) => set("bucket_urgent_label", e.target.value)}
             />
           </div>
           <div className="space-y-2">
-            <Label>Long-term category name</Label>
+            <Label className="flex items-center">Long-term category name<InfoTip k="longtermLabel" /></Label>
             <Input
+            placeholder="e.g. Skills & portfolio"
               value={form.bucket_longterm_label}
               onChange={(e) => set("bucket_longterm_label", e.target.value)}
             />
@@ -321,7 +326,7 @@ function SettingsPage() {
         </div>
         <div className="space-y-3">
           <div className="flex items-baseline justify-between">
-            <Label>Category targets (% of your time)</Label>
+            <Label className="flex items-center">Category targets (% of your time)<InfoTip k="categoryTargets" /></Label>
             <span
               className={`text-sm font-semibold ${targetTotal === 100 ? "text-primary" : "text-destructive"}`}
             >
@@ -358,20 +363,22 @@ function SettingsPage() {
           )}
         </div>
         <div className="space-y-2">
-          <Label>What you're optimising for</Label>
-          <Input value={form.value_label} onChange={(e) => set("value_label", e.target.value)} />
+          <Label className="flex items-center">What you're optimising for<InfoTip k="valueLabel" /></Label>
+          <Input placeholder="e.g. career and income" value={form.value_label} onChange={(e) => set("value_label", e.target.value)} />
         </div>
         <div className="space-y-2">
-          <Label>Priority notes</Label>
+          <Label className="flex items-center">Priority notes<InfoTip k="priorityNotes" /></Label>
           <Textarea
+            placeholder="e.g. Interviews always come first. No work after 9pm."
             rows={3}
             value={form.priority_notes}
             onChange={(e) => set("priority_notes", e.target.value)}
           />
         </div>
         <div className="space-y-2">
-          <Label>Session lengths (minutes, comma separated)</Label>
+          <Label className="flex items-center">Session lengths (minutes, comma separated)<InfoTip k="sessionLengths" /></Label>
           <Input
+            placeholder="e.g. 25, 45, 90"
             value={form.session_lengths}
             onChange={(e) => set("session_lengths", e.target.value)}
           />
@@ -384,7 +391,7 @@ function SettingsPage() {
         </h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label>Coaching tone</Label>
+            <Label className="flex items-center">Coaching tone<InfoTip k="coachingTone" /></Label>
             <Select value={form.coaching_tone} onValueChange={(v) => set("coaching_tone", v)}>
               <SelectTrigger>
                 <SelectValue />
@@ -399,7 +406,7 @@ function SettingsPage() {
             </Select>
           </div>
           <div className="space-y-2">
-            <Label>Guard</Label>
+            <Label className="flex items-center">Guard<InfoTip k="guard" /></Label>
             <div className="flex gap-2">
               <Select
                 value={parseGuard(form.guard_mode).on ? "on" : "off"}
@@ -433,15 +440,16 @@ function SettingsPage() {
           </div>
         </div>
         <div className="space-y-2">
-          <Label>Distracting sites (comma separated)</Label>
+          <Label className="flex items-center">Distracting sites (comma separated)<InfoTip k="distractingSites" /></Label>
           <Input
+            placeholder="e.g. instagram.com, youtube.com"
             value={form.distraction_sites}
             onChange={(e) => set("distraction_sites", e.target.value)}
           />
         </div>
         <div className="flex items-center justify-between gap-4">
           <div>
-            <Label>Morning brief</Label>
+            <Label className="flex items-center">Morning brief<InfoTip k="morningBrief" /></Label>
             <p className="text-sm text-muted-foreground">A short plan at the start of your day.</p>
           </div>
           <Switch
@@ -450,7 +458,7 @@ function SettingsPage() {
           />
         </div>
         <div className="space-y-2 sm:max-w-40">
-          <Label>Brief time</Label>
+          <Label className="flex items-center">Brief time<InfoTip k="briefTime" /></Label>
           <Input
             type="time"
             value={form.morning_brief_time}
@@ -472,15 +480,17 @@ function SettingsPage() {
         </h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label>WhatsApp number</Label>
+            <Label className="flex items-center">WhatsApp number<InfoTip k="whatsapp" /></Label>
             <Input
+            placeholder="e.g. +91 98765 43210"
               value={form.whatsapp_number}
               onChange={(e) => set("whatsapp_number", e.target.value)}
             />
           </div>
           <div className="space-y-2">
-            <Label>Email forwarding tag</Label>
+            <Label className="flex items-center">Email forwarding tag<InfoTip k="emailTag" /></Label>
             <Input
+            placeholder="e.g. nextaction"
               value={form.email_forward_tag}
               onChange={(e) => set("email_forward_tag", e.target.value)}
             />

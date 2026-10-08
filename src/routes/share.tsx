@@ -1,3 +1,4 @@
+import { InfoTip } from "@/components/InfoTip";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { z } from "zod";
@@ -103,7 +104,7 @@ function SharePage() {
           <p className="text-sm font-medium">{title || link}</p>
           {title && <p className="break-all text-xs text-muted-foreground">{link}</p>}
           <label className="block space-y-1 text-sm">
-            <span className="text-muted-foreground">Project</span>
+            <span className="flex items-center text-muted-foreground">Project<InfoTip k="resourceProject" /></span>
             <Select value={projectId} onValueChange={setProjectId}>
               <SelectTrigger className="w-full">
                 <SelectValue />
@@ -118,7 +119,7 @@ function SharePage() {
           </label>
           <div className="flex gap-2">
             <Input
-              placeholder="Note (optional)"
+              placeholder="Note (optional), e.g. Better portfolio case studies"
               value={note}
               onChange={(e) => setNote(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && send()}

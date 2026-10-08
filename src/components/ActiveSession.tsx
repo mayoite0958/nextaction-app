@@ -271,7 +271,7 @@ export function ActiveSession({
       )}
       {sheet === "ask" && (
         <Banner text="What pulled you away? (optional)">
-          <Input autoFocus value={reason} onChange={(e) => setReason(e.target.value)} className="min-w-0 flex-1" />
+          <Input autoFocus placeholder="e.g. Urgent call from a recruiter" value={reason} onChange={(e) => setReason(e.target.value)} className="min-w-0 flex-1" />
           <MicButton onText={(t) => setReason((r) => (r ? `${r} ${t}` : t))} />
           <div className="flex w-full flex-wrap gap-2">
             <Button size="sm" onClick={quickDetour}>Quick detour</Button>
@@ -284,7 +284,7 @@ export function ActiveSession({
         <Banner text="How did this session go?">
           <div className="flex w-full flex-wrap gap-2">
             {["Completed", "Materially advanced", "Not really"].map((o) => (
-              <Button key={o} size="sm" variant={pickOutcome === o ? "default" : "outline"} onClick={() => setPickOutcome(o)}>{o}</Button>
+              <Button key={o} size="sm" variant={pickOutcome === o ? "default" : "outline"} onClick={() => setPickOutcome(o)}>{o === "Materially advanced" ? "Made progress" : o}</Button>
             ))}
           </div>
           <select value={pickId} onChange={(e) => setPickId(e.target.value)} className="w-full rounded-md border border-border bg-background p-2">
@@ -312,7 +312,7 @@ export function ActiveSession({
       )}
       {switchReason != null && (
         <Banner text="What pulled you away? (optional)">
-          <Input autoFocus value={switchReason} onChange={(e) => setSwitchReason(e.target.value)} className="min-w-0 flex-1" />
+          <Input autoFocus placeholder="e.g. Urgent call from a recruiter" value={switchReason} onChange={(e) => setSwitchReason(e.target.value)} className="min-w-0 flex-1" />
           <MicButton onText={(t) => setSwitchReason((r) => (r ? `${r} ${t}` : t))} />
           <Button size="sm" onClick={() => { const r = switchReason.trim(); setSwitchReason(null); void tap("switch", r || null); }}>Save</Button>
         </Banner>
@@ -333,7 +333,7 @@ export function ActiveSession({
         <div className="flex gap-2">
           <Input
             autoFocus
-            placeholder="Say or type a note"
+            placeholder="e.g. Need a better hero image"
             value={note}
             onChange={(e) => setNote(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && saveNote()}

@@ -1,3 +1,4 @@
+import { InfoTip } from "@/components/InfoTip";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
@@ -325,7 +326,7 @@ function Today() {
 
         <div className="mt-4 flex flex-wrap items-end gap-3">
           <label className="flex flex-col gap-1 text-sm">
-            <span className="text-muted-foreground">Time available (min)</span>
+            <span className="flex items-center text-muted-foreground">Time available (min)<InfoTip k="timeAvailable" /></span>
             <Input
               type="number"
               min={5}
@@ -336,7 +337,7 @@ function Today() {
             />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            <span className="text-muted-foreground">Energy</span>
+            <span className="flex items-center text-muted-foreground">Energy<InfoTip k="energy" /></span>
             <Select value={energy} onValueChange={(v) => setEnergy(v as Energy)}>
               <SelectTrigger className="w-32">
                 <SelectValue />
@@ -521,7 +522,7 @@ function Today() {
 
                 <dl className="space-y-1.5 text-sm">
                   <div className="flex gap-2">
-                    <dt className="w-28 shrink-0 text-muted-foreground">Value</dt>
+                    <dt className="w-28 shrink-0 text-muted-foreground">Importance</dt>
                     <dd>{p.value_score ?? 3}/5</dd>
                   </div>
                   <div className="flex gap-2">

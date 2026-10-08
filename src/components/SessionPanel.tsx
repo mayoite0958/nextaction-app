@@ -1,3 +1,5 @@
+import { InfoTip } from "@/components/InfoTip";
+import type { HelpKey } from "@/lib/help";
 import { useEffect, useRef, useState } from "react";
 import { MicButton } from "@/components/MicButton";
 import { ActiveSession, type SwitchTarget } from "@/components/ActiveSession";
@@ -341,7 +343,7 @@ export function SessionPanel({
   if (stage === "ending")
     return (
       <div className="space-y-3 rounded-md border border-border p-4">
-        <p className="font-display text-lg font-semibold">How did it go?</p>
+        <p className="flex items-center font-display text-lg font-semibold">How did it go?<InfoTip k="outcome" /></p>
         <div className="grid gap-2">
           {OUTCOMES.map((option) => (
             <Button key={option.value} variant="outline" className="h-14 w-full text-base" onClick={() => end(option.value)} disabled={busy}>
@@ -390,7 +392,7 @@ export function SessionPanel({
       <p role="status" className="text-sm text-primary">Session saved.</p>
       {ratingOpen && (
         <div className="space-y-2 rounded-md border border-border p-3">
-          <p className="text-sm font-medium">Was this a good suggestion?</p>
+          <p className="flex items-center text-sm font-medium">Was this a good suggestion?<InfoTip k="goodSuggestion" /></p>
           <div className="grid grid-cols-3 gap-2">
             {[{ icon: "👎", value: 1, label: "Poor suggestion" }, { icon: "😐", value: 3, label: "Okay suggestion" }, { icon: "👍", value: 5, label: "Good suggestion" }].map((rating) => (
               <Button key={rating.value} variant="outline" aria-label={rating.label} title={rating.label} className="h-11 text-xl" disabled={ratingBusy} onClick={() => rateSuggestion(rating.value)}>{rating.icon}</Button>
@@ -406,18 +408,18 @@ export function SessionPanel({
         <summary className="cursor-pointer text-sm text-muted-foreground underline underline-offset-4">Add details (optional)</summary>
         <div className="mt-4 space-y-4">
           <div className="space-y-1.5 text-sm">
-            <label htmlFor={`stopped-${sessionId}`} className="text-muted-foreground">Where did you stop?</label>
+            <label htmlFor={`stopped-${sessionId}`} className="flex items-center text-muted-foreground">Where did you stop?<InfoTip k="whereStopped" /></label>
             <div className="flex gap-2">
-              <Input id={`stopped-${sessionId}`} className="min-w-0" value={whereStopped} onChange={(e) => setWhereStopped(e.target.value)} />
+              <Input id={`stopped-${sessionId}`} className="min-w-0" placeholder="e.g. Halfway through the cover letter" value={whereStopped} onChange={(e) => setWhereStopped(e.target.value)} />
               <MicButton onText={(t) => setWhereStopped((w) => (w ? `${w} ${t}` : t))} />
             </div>
           </div>
-          <Chips label="Less stuck?" options={["1", "2", "3", "4", "5"]} value={lessStuck == null ? "" : String(lessStuck)} onChange={(v) => setLessStuck(Number(v))} />
-          <Chips label="Milestone moved?" options={["Yes", "No"]} value={milestone == null ? "" : milestone ? "Yes" : "No"} onChange={(v) => setMilestone(v === "Yes")} />
-          {recommendation.resource_id && <Chips label="Did you use the resource?" options={["Yes", "No"]} value={resourceUsed == null ? "" : resourceUsed ? "Yes" : "No"} onChange={(v) => setResourceUsed(v === "Yes")} />}
+          <Chips help="lessStuck" label="Less stuck?" options={["1", "2", "3", "4", "5"]} value={lessStuck == null ? "" : String(lessStuck)} onChange={(v) => setLessStuck(Number(v))} />
+          <Chips help="milestoneMoved" label="Milestone moved?" options={["Yes", "No"]} value={milestone == null ? "" : milestone ? "Yes" : "No"} onChange={(v) => setMilestone(v === "Yes")} />
+          {recommendation.resource_id && <Chips help="resourceUsed" label="Did you use the resource?" options={["Yes", "No"]} value={resourceUsed == null ? "" : resourceUsed ? "Yes" : "No"} onChange={(v) => setResourceUsed(v === "Yes")} />}
       {project && type === "finish_line" && milestones.length > 0 && (
         <div className="space-y-2 text-sm">
-          <p className="text-muted-foreground">Tick the milestones you finished</p>
+          <p className="flex items-center text-muted-foreground">Tick the milestones you finished<InfoTip k="milestones" /></p>
           {milestones.map((m, i) => (
             <Button
               key={i}
@@ -435,7 +437,7 @@ export function SessionPanel({
       )}
       {project && type === "countable" && (
         <div className="flex items-center gap-3 text-sm">
-          <span className="text-muted-foreground">Done this session</span>
+          <span className="flex items-center text-muted-foreground">Done this session<InfoTip k="countDone" /></span>
           <Button size="sm" variant="outline" onClick={() => setPlusCount((c) => Math.max(0, c - 1))}>−</Button>
           <span className="w-8 text-center font-display text-xl font-semibold">{plusCount}</span>
           <Button size="sm" onClick={() => setPlusCount((c) => c + 1)}>+1</Button>
@@ -483,10 +485,12 @@ function CheckRow({ checked, onToggle, label }: { checked: boolean; onToggle: ()
 
 function Chips({
   label,
+  help,
   options,
   value,
   onChange,
 }: {
+  help?: HelpKey;
   label: string;
   options: string[];
   value: string;
@@ -494,7 +498,7 @@ function Chips({
 }) {
   return (
     <div className="space-y-1.5 text-sm">
-      <p className="text-muted-foreground">{label}</p>
+      <p className="flex items-center text-muted-foreground">{label}{help && <InfoTip k={help} />}</p>
       <div className="flex flex-wrap gap-2">
         {options.map((o) => (
           <Button
