@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { CategoryBalance } from "@/components/CategoryBalance";
 import { SessionPanel } from "@/components/SessionPanel";
@@ -18,7 +18,16 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { bucketLabel, daysLeft, relativeTime } from "@/lib/nextaction";
-import { requestRecommendation, type Energy, type Recommendation } from "@/lib/n8n";
+import {
+  draftRecommendation,
+  loadRecommendContext,
+  requestRecommendation,
+  type Energy,
+  type Recommendation,
+  type RecommendContext,
+} from "@/lib/n8n";
+
+const LAST_KEY = "na_last_rec_inputs";
 import type { Database } from "@/integrations/supabase/types";
 import { ExternalLink, ResourceThumb } from "@/components/ResourceThumb";
 import { youtubeWatchUrl } from "@/lib/youtube";
@@ -142,22 +151,119 @@ function Today() {
     })();
   }, []);
 
-  async function ask(rejectedActions: string[]) {
-    setAsking(true);
+  const [isDraft, setIsDraft] = useState(false);
+  const [refining, setRefining] = useState(false);
+  const [slow, setSlow] = useState(false);
+  const [inputsReady, setInputsReady] = useState(false);
+  const ctxRef = useRef<Promise<RecommendContext> | null>(null);
+  const ctxValue = useRef<RecommendContext | null>(null);
+  const prefetch = useRef<{ key: string; promise: Promise<Recommendation>; value?: Recommendation } | null>(null);
+  const reqId = useRef(0);
+
+  const minutes = () => Math.max(1, Number.parseInt(timeMin, 10) || 30);
+
+  function loadCtx(fresh = false) {
+    if (!ctxRef.current || fresh) {
+      const p = loadRecommendContext();
+      ctxRef.current = p;
+      p.then((c) => { if (ctxRef.current === p) ctxValue.current = c; }, () => { if (ctxRef.current === p) ctxRef.current = null; });
+    }
+    return ctxRef.current;
+  }
+
+  function startPrefetch(t: number, e: Energy) {
+    const key = `${t}|${e}`;
+    if (prefetch.current?.key === key) return prefetch.current;
+    const entry: { key: string; promise: Promise<Recommendation>; value?: Recommendation } = {
+      key,
+      promise: loadCtx().then((c) => requestRecommendation({ time_min: t, energy: e, rejected_actions: [] }, c)),
+    };
+    entry.promise.then((v) => { entry.value = v; }, () => { if (prefetch.current === entry) prefetch.current = null; });
+    prefetch.current = entry;
+    return entry;
+  }
+
+  // Restore last-used time and energy, then load data for the instant draft.
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(LAST_KEY) ?? "null");
+      if (saved?.timeMin) setTimeMin(String(saved.timeMin));
+      if (["Low", "Medium", "High"].includes(saved?.energy)) setEnergy(saved.energy);
+    } catch { /* ignore */ }
+    setInputsReady(true);
+    void loadCtx().catch(() => {});
+  }, []);
+
+  // Quietly prefetch an AI answer for the current time and energy.
+  useEffect(() => {
+    if (!inputsReady) return;
+    const t = setTimeout(() => { startPrefetch(minutes(), energy); }, 700);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inputsReady, timeMin, energy]);
+
+  async function ask(rejectedActions: string[], opts: { fresh?: boolean } = {}) {
+    const id = ++reqId.current;
+    const t = minutes();
+    try { localStorage.setItem(LAST_KEY, JSON.stringify({ timeMin: t, energy })); } catch { /* ignore */ }
     setAskError(null);
     setAutoStart(false);
-    try {
-      setRecommendation(
-        await requestRecommendation({
-          time_min: Math.max(1, Number.parseInt(timeMin, 10) || 30),
-          energy,
-          rejected_actions: rejectedActions,
-        }),
-      );
-    } catch (e) {
-      setAskError(e instanceof Error ? e.message : "Could not reach n8n");
-    } finally {
+    setSlow(false);
+    setResume(null);
+
+    let aiPromise: Promise<Recommendation>;
+    if (rejectedActions.length === 0 && !opts.fresh) {
+      const entry = startPrefetch(t, energy);
+      if (entry.value) {
+        setIsDraft(false);
+        setRefining(false);
+        setRecommendation(entry.value);
+        prefetch.current = null; // next tap asks again
+        return;
+      }
+      aiPromise = entry.promise;
+      prefetch.current = null;
+    } else {
+      aiPromise = loadCtx(true).then((c) => requestRecommendation({ time_min: t, energy, rejected_actions: rejectedActions }, c));
+    }
+
+    // Instant draft from the in-app ranking.
+    const showDraft = (c: RecommendContext) => {
+      if (id !== reqId.current) return;
+      const d = draftRecommendation(c, t, energy);
+      if (d && !rejectedActions.includes(d.next_action ?? "")) {
+        setRecommendation(d);
+        setIsDraft(true);
+      }
+    };
+    if (ctxValue.current && rejectedActions.length === 0) showDraft(ctxValue.current);
+    else if (rejectedActions.length === 0) void loadCtx().then(showDraft, () => {});
+    setRefining(true);
+    setAsking(true);
+
+    const timer = setTimeout(() => {
+      if (id !== reqId.current) return;
+      setRefining(false);
       setAsking(false);
+      setSlow(true);
+      reqId.current++; // keep the draft; ignore a late answer
+    }, 8000);
+
+    try {
+      const rec = await aiPromise;
+      if (id !== reqId.current) return;
+      setRecommendation((prev) => (prev && prev.project_id === rec.project_id ? { ...prev, ...rec } : rec));
+      setIsDraft(false);
+    } catch (e) {
+      if (id !== reqId.current) return;
+      if (ctxValue.current && draftRecommendation(ctxValue.current, t, energy)) setSlow(true);
+      else setAskError(e instanceof Error ? e.message : "Could not reach n8n");
+    } finally {
+      clearTimeout(timer);
+      if (id === reqId.current) {
+        setRefining(false);
+        setAsking(false);
+      }
     }
   }
 
@@ -249,7 +355,13 @@ function Today() {
         {askError ? (
           <p className="mt-3 text-sm text-destructive">{askError}</p>
         ) : recommendation ? (
-          <div className="mt-4 space-y-3 text-sm">
+          <div
+            key={recommendation.project_id ?? "none"}
+            className="rec-in mt-4 space-y-3 text-sm transition-opacity duration-300"
+          >
+            {isDraft && (
+              <Badge variant="outline" className="border-primary text-primary">Suggested</Badge>
+            )}
             {recommendation.project_name && (
               <p>
                 <span className="text-muted-foreground">Project: </span>
@@ -291,6 +403,15 @@ function Today() {
                   projects.find((p) => p.id === recommendation.project_id)?.progress_percent ?? null
                 }
               />
+            )}
+            {refining && <p className="shimmer-text text-xs font-medium">AI is refining…</p>}
+            {slow && isDraft && (
+              <p className="text-xs text-muted-foreground">
+                Using a quick suggestion ·{" "}
+                <button type="button" className="text-primary underline" onClick={() => ask(rejected, { fresh: true })}>
+                  Refresh
+                </button>
+              </p>
             )}
           </div>
         ) : (

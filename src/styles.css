@@ -132,3 +132,15 @@
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-panel);
 }
+
+@keyframes rec-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+@utility rec-in { animation: rec-in 280ms ease-out; }
+@utility shimmer-text {
+  background: linear-gradient(90deg, var(--muted-foreground) 30%, var(--primary) 50%, var(--muted-foreground) 70%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 1.6s linear infinite;
+}
