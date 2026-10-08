@@ -168,17 +168,29 @@ function Today() {
   const prefetch = useRef<{ key: string; promise: Promise<Recommendation>; value?: Recommendation } | null>(null);
   const reqId = useRef(0);
   const alt = useRef<{ key: string; promise: Promise<Recommendation>; value?: Recommendation } | null>(null);
+  const rejectedProj = useRef(new Map<string, { id: string | null; name: string | null }>());
+  const rejProjects = (rej: string[]) => {
+    const seen = new Set<string>();
+    return rej.flatMap((a) => {
+      const p = rejectedProj.current.get(a);
+      const k = p?.id ?? p?.name;
+      if (!p || !k || seen.has(k)) return [];
+      seen.add(k);
+      return [{ ...p, action: a }];
+    });
+  };
   const altKey = (t: number, e: Energy, rej: string[]) => `${t}|${e}|${rej.join("\u0001")}`;
 
   /** Quietly fetch the answer "Not this one" would show, so it appears instantly. */
   function prefetchAlt(t: number, e: Energy, rej: string[], shown: Recommendation) {
     if (!shown.next_action) return;
     const next = [...rej, shown.next_action];
+    rejectedProj.current.set(shown.next_action, { id: shown.project_id, name: shown.project_name });
     const key = altKey(t, e, next);
     if (alt.current?.key === key) return;
     const entry: { key: string; promise: Promise<Recommendation>; value?: Recommendation } = {
       key,
-      promise: loadCtx().then((c) => requestRecommendation({ time_min: t, energy: e, rejected_actions: next }, c)),
+      promise: loadCtx().then((c) => requestRecommendation({ time_min: t, energy: e, rejected_actions: next, rejected_projects: rejProjects(next) }, c)),
     };
     entry.promise.then((v) => { entry.value = v; }, () => { if (alt.current === entry) alt.current = null; });
     alt.current = entry;
@@ -261,7 +273,7 @@ function Today() {
       aiPromise = entry.promise;
       prefetch.current = null;
     } else {
-      aiPromise = loadCtx(true).then((c) => requestRecommendation({ time_min: t, energy, rejected_actions: rejectedActions }, c));
+      aiPromise = loadCtx(true).then((c) => requestRecommendation({ time_min: t, energy, rejected_actions: rejectedActions, rejected_projects: rejProjects(rejectedActions) }, c));
     }
 
     // Instant draft from the in-app ranking.
@@ -317,6 +329,7 @@ function Today() {
       energy,
     });
     const next = [...rejected, recommendation.next_action];
+    rejectedProj.current.set(recommendation.next_action, { id: recommendation.project_id, name: recommendation.project_name });
     setRejected(next);
     void ask(next);
   }

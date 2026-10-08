@@ -273,7 +273,7 @@ export class RecommendParseError extends Error {
 }
 
 export async function requestRecommendation(
-  input: { time_min: number; energy: Energy; rejected_actions: string[] },
+  input: { time_min: number; energy: Energy; rejected_actions: string[]; rejected_projects?: { id: string | null; name: string | null; action: string }[] },
   ctxIn?: RecommendContext,
 ): Promise<Recommendation> {
   const { settings, targets, recent_summary, today, ranked, tasksBy, sessionsBy, notesBy, rejections, urgent, resources, tz } =
@@ -295,6 +295,10 @@ export async function requestRecommendation(
       time_min: input.time_min,
       energy: input.energy,
       rejected_actions: input.rejected_actions,
+      rejected_projects: input.rejected_projects ?? [],
+      rejection_hint: input.rejected_projects?.length
+        ? `The user rejected these projects just now: ${input.rejected_projects.map((r) => r.name ?? r.id).join(", ")}. Suggest a different project.`
+        : null,
       settings: settings ?? null,
       category_targets: targets,
       balance: {
