@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/DatePicker";
 import { supabase } from "@/integrations/supabase/client";
 import { recalcProjectProgress } from "@/lib/progress";
 
@@ -115,9 +116,9 @@ export function LogPastWork({ projectId }: { projectId?: string }) {
           </select>
         </label>
       )}
-      <label className="block">Day you worked
-        <Input type="date" className="mt-1" max={localToday()} value={date} onChange={(e) => setDate(e.target.value)} />
-      </label>
+      <div>Day you worked
+        <DatePicker className="mt-1 w-full" value={date} onChange={setDate} noFuture />
+      </div>
       <div>Minutes
         <div className="mt-1 flex flex-wrap gap-1">
           {MINS.map((n) => (
