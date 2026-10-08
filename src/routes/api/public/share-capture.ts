@@ -6,7 +6,8 @@ import { CAPTURE_URL } from "@/lib/phone";
 const Body = z.object({
   key: z.string().min(8).max(200),
   url: z.string().min(1).max(4000),
-  note: z.string().min(1).max(4000),
+  note: z.string().max(4000).default(""),
+  project_id: z.string().uuid().nullable().default(null),
   title: z.string().max(1000).default(""),
   source: z.enum(["android", "desktop"]),
 });
