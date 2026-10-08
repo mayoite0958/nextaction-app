@@ -1,3 +1,5 @@
+import { InfoTip } from "@/components/InfoTip";
+import type { HelpKey } from "@/lib/help";
 import { RestartCard } from "@/components/RestartCard";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -386,13 +388,13 @@ function ProjectPage() {
       )}
 
       <section className="panel mt-6 grid gap-4 p-5">
-        <Field label="Name"><Input value={form.name} onChange={(e) => set("name", e.target.value)} /></Field>
-        <Field label="Goal"><Textarea value={form.goal} onChange={(e) => set("goal", e.target.value)} /></Field>
+        <Field label="Name" help="projectName"><Input placeholder="e.g. Product designer job hunt" value={form.name} onChange={(e) => set("name", e.target.value)} /></Field>
+        <Field label="Goal" help="goal"><Textarea placeholder="e.g. Get a product designer job" value={form.goal} onChange={(e) => set("goal", e.target.value)} /></Field>
         <div className="grid gap-4 sm:grid-cols-3">
-          <Field label="Deadline">
+          <Field label="Deadline" help="deadline">
             <Input type="date" value={form.deadline} onChange={(e) => set("deadline", e.target.value)} />
           </Field>
-          <Field label="Category">
+          <Field label="Category" help="category">
             <Select
               value={addingCategory ? "__new" : form.bucket}
               onValueChange={(v) => {
@@ -424,7 +426,7 @@ function ProjectPage() {
               />
             )}
           </Field>
-          <Field label="Status">
+          <Field label="Status" help="status">
             <Select value={form.status} onValueChange={(v) => set("status", v)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -435,11 +437,11 @@ function ProjectPage() {
             </Select>
           </Field>
         </div>
-        <Field label={`Value: ${form.value_score}/5`}>
+        <Field label={`Importance: ${form.value_score}/5`} help="importance">
           <Slider min={1} max={5} step={1} value={[form.value_score]} onValueChange={(v) => set("value_score", v[0] ?? 3)} />
         </Field>
         <div className="flex flex-col gap-1.5 text-sm">
-          <span className="text-muted-foreground">Project type</span>
+          <span className="flex items-center text-muted-foreground">Project type<InfoTip k="projectType" /></span>
           <div className="flex flex-wrap gap-2">
             {PROJECT_TYPES.map((t) => (
               <Button
@@ -458,7 +460,7 @@ function ProjectPage() {
 
         {form.project_type === "finish_line" && (
           <div className="grid gap-3 rounded-md border border-border p-4">
-            <Field label="Done looks like">
+            <Field label="Done looks like" help="doneDefinition">
               <Textarea value={form.done_definition} onChange={(e) => set("done_definition", e.target.value)} />
             </Field>
             <div className="flex items-center justify-between gap-2">
@@ -478,7 +480,7 @@ function ProjectPage() {
                   onChange={(e) => setMilestone(i, { done: e.target.checked })}
                   aria-label="Done"
                 />
-                <Input value={m.title} placeholder="Milestone" onChange={(e) => setMilestone(i, { title: e.target.value })} />
+                <Input value={m.title} placeholder="e.g. Portfolio ready" onChange={(e) => setMilestone(i, { title: e.target.value })} />
                 <Input
                   type="number"
                   className="w-20"
@@ -523,7 +525,7 @@ function ProjectPage() {
                     />
                     <Input
                       value={t.title}
-                      placeholder="Task"
+                      placeholder="e.g. Update case study 1"
                       onChange={(e) =>
                         setFirstTasks((ts) => ts.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))
                       }
@@ -540,7 +542,7 @@ function ProjectPage() {
                     />
                     <Input
                       className="w-24"
-                      placeholder="Energy"
+                      placeholder="e.g. Low"
                       value={t.energy}
                       onChange={(e) =>
                         setFirstTasks((ts) => ts.map((x, j) => (j === i ? { ...x, energy: e.target.value } : x)))
@@ -555,22 +557,22 @@ function ProjectPage() {
         )}
         {form.project_type === "countable" && (
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Total to get through">
-              <Input type="number" min={1} value={form.count_total} onChange={(e) => set("count_total", e.target.value)} />
+            <Field label="Total to get through" help="countTotal">
+              <Input placeholder="e.g. 12" type="number" min={1} value={form.count_total} onChange={(e) => set("count_total", e.target.value)} />
             </Field>
-            <Field label="Done so far">
-              <Input type="number" min={0} value={form.count_done} onChange={(e) => set("count_done", Math.max(0, Number(e.target.value) || 0))} />
+            <Field label="Done so far" help="countDone">
+              <Input placeholder="e.g. 3" type="number" min={0} value={form.count_done} onChange={(e) => set("count_done", Math.max(0, Number(e.target.value) || 0))} />
             </Field>
           </div>
         )}
         {form.project_type === "ongoing" && (
-          <Field label="Sessions per week">
-            <Input type="number" min={1} className="w-28" value={form.weekly_target} onChange={(e) => set("weekly_target", e.target.value)} />
+          <Field label="Sessions per week" help="weeklyTarget">
+            <Input placeholder="e.g. 3" type="number" min={1} className="w-28" value={form.weekly_target} onChange={(e) => set("weekly_target", e.target.value)} />
           </Field>
         )}
         <div>
           <div className="flex justify-between text-sm text-muted-foreground">
-            <span>Progress (calculated)</span>
+            <span className="flex items-center">Progress (calculated)<InfoTip k="progress" /></span>
             <span>
               {form.project_type === "ongoing"
                 ? `${doneThisWeek}/${numOrNull(form.weekly_target) ?? "?"} this week`
@@ -581,15 +583,15 @@ function ProjectPage() {
             <div className="h-full bg-primary" style={{ width: `${progress}%` }} />
           </div>
         </div>
-        <Field label="Blocker"><Input value={form.blocker} onChange={(e) => set("blocker", e.target.value)} /></Field>
-        <Field label="Last meaningful action">
-          <Input value={form.last_meaningful_action} onChange={(e) => set("last_meaningful_action", e.target.value)} />
+        <Field label="Blocker" help="blocker"><Input placeholder="e.g. Waiting for feedback from mentor" value={form.blocker} onChange={(e) => set("blocker", e.target.value)} /></Field>
+        <Field label="Last meaningful action" help="lastAction">
+          <Input placeholder="e.g. Sent portfolio to 3 recruiters" value={form.last_meaningful_action} onChange={(e) => set("last_meaningful_action", e.target.value)} />
         </Field>
-        <Field label="Next likely action">
-          <Input value={form.next_likely_action} onChange={(e) => set("next_likely_action", e.target.value)} />
+        <Field label="Next likely action" help="nextAction">
+          <Input placeholder="e.g. Email Rahul about the referral" value={form.next_likely_action} onChange={(e) => set("next_likely_action", e.target.value)} />
         </Field>
-        <Field label="Progress notes">
-          <Textarea rows={5} value={form.progress_summary} onChange={(e) => set("progress_summary", e.target.value)} />
+        <Field label="Progress notes" help="progressNotes">
+          <Textarea placeholder="e.g. Recruiters like case study 2 most" rows={5} value={form.progress_summary} onChange={(e) => set("progress_summary", e.target.value)} />
         </Field>
         <div className="flex flex-wrap gap-2">
           <Button onClick={save} disabled={saving}>{saving ? "Saving…" : "Save project"}</Button>
@@ -620,10 +622,10 @@ function ProjectPage() {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, help, children }: { label: string; help?: HelpKey; children: React.ReactNode }) {
   return (
-    <label className="flex flex-col gap-1.5 text-sm">
-      <span className="text-muted-foreground">{label}</span>
+    <label className="flex min-w-0 flex-col gap-1.5 text-sm">
+      <span className="flex items-center text-muted-foreground">{label}{help && <InfoTip k={help} />}</span>
       {children}
     </label>
   );
