@@ -31,6 +31,7 @@ import {
   weekStart,
   type Milestone,
   type ProjectType,
+  fetchProjectWeekCount,
 } from "@/lib/progress";
 
 export const Route = createFileRoute("/_authenticated/projects/$id")({

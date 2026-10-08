@@ -1,7 +1,7 @@
 import type { Database } from "@/integrations/supabase/types";
 import { daysLeft } from "@/lib/nextaction";
 import { daysSince } from "@/lib/categories";
-import { weekStart } from "@/lib/progress";
+import { countsAsWork, weekStart } from "@/lib/progress";
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"];
 

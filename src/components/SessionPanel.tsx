@@ -22,6 +22,8 @@ import {
   projectType,
   weekStart,
   type Milestone,
+  fetchProjectWeekCount,
+  touchProjectWorked,
 } from "@/lib/progress";
 import { focusFromEvents, type Focus } from "@/lib/guard";
 
