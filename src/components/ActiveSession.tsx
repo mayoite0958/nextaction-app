@@ -271,7 +271,7 @@ export function ActiveSession({
       )}
       {sheet === "ask" && (
         <Banner text="What pulled you away? (optional)">
-          <Input autoFocus value={reason} onChange={(e) => setReason(e.target.value)} className="min-w-0 flex-1" />
+          <Input autoFocus placeholder="e.g. Urgent call from a recruiter" value={reason} onChange={(e) => setReason(e.target.value)} className="min-w-0 flex-1" />
           <MicButton onText={(t) => setReason((r) => (r ? `${r} ${t}` : t))} />
           <div className="flex w-full flex-wrap gap-2">
             <Button size="sm" onClick={quickDetour}>Quick detour</Button>
@@ -312,7 +312,7 @@ export function ActiveSession({
       )}
       {switchReason != null && (
         <Banner text="What pulled you away? (optional)">
-          <Input autoFocus value={switchReason} onChange={(e) => setSwitchReason(e.target.value)} className="min-w-0 flex-1" />
+          <Input autoFocus placeholder="e.g. Urgent call from a recruiter" value={switchReason} onChange={(e) => setSwitchReason(e.target.value)} className="min-w-0 flex-1" />
           <MicButton onText={(t) => setSwitchReason((r) => (r ? `${r} ${t}` : t))} />
           <Button size="sm" onClick={() => { const r = switchReason.trim(); setSwitchReason(null); void tap("switch", r || null); }}>Save</Button>
         </Banner>
