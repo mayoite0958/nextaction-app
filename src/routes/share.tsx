@@ -9,6 +9,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { MicButton } from "@/components/MicButton";
 import { CAPTURE_URL, KEY_STORAGE } from "@/lib/phone";
 
 // Receives links from Android Share and the desktop bookmark, asks for a note, then sends to n8n.
@@ -36,6 +38,7 @@ export const Route = createFileRoute("/share")({
 function SharePage() {
   const { link: shared, text, title, source, k } = Route.useSearch();
   const [key, setKey] = useState<string | null | undefined>(undefined);
+  const [note, setNote] = useState("");
   const [projectId, setProjectId] = useState<string>("auto");
   const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
   const [sending, setSending] = useState(false);
@@ -69,7 +72,7 @@ function SharePage() {
         body: JSON.stringify({
           key,
           url: link,
-          note: "",
+          note: note.trim(),
           project_id: projectId === "auto" ? null : projectId,
           title: title ?? "",
           source: source ?? "android",
@@ -113,6 +116,15 @@ function SharePage() {
               </SelectContent>
             </Select>
           </label>
+          <div className="flex gap-2">
+            <Input
+              placeholder="Note (optional)"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && send()}
+            />
+            <MicButton onText={(t) => setNote((n) => (n ? `${n} ${t}` : t))} />
+          </div>
           <Button onClick={send} className="w-full" disabled={sending || !link}>
             {sending ? "Saving…" : "Save"}
           </Button>
