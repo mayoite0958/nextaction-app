@@ -144,3 +144,9 @@
   color: transparent;
   animation: shimmer 1.6s linear infinite;
 }
+@keyframes resurface-glow {
+  0% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 0%, transparent); }
+  40% { box-shadow: 0 0 24px 4px color-mix(in oklab, var(--primary) 45%, transparent); }
+  100% { box-shadow: 0 0 10px 0 color-mix(in oklab, var(--primary) 18%, transparent); }
+}
+@utility resurface-glow { animation: rec-in 280ms ease-out, resurface-glow 1.8s ease-out forwards; }
