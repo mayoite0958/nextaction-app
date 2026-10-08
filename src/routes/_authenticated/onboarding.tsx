@@ -1,3 +1,4 @@
+import { InfoTip } from "@/components/InfoTip";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -214,26 +215,28 @@ function Onboarding() {
           <h1 className="text-3xl font-bold">Make it yours</h1>
           <div className="panel mt-6 space-y-5 p-6">
             <div className="space-y-2">
-              <Label htmlFor="name">Your name</Label>
-              <Input id="name" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
+              <Label htmlFor="name" className="flex items-center">Your name<InfoTip k="name" /></Label>
+              <Input id="name" placeholder="e.g. Priya" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="ul">Urgent category name</Label>
-                <Input id="ul" value={urgentLabel} onChange={(e) => setUrgentLabel(e.target.value)} />
+                <Label htmlFor="ul" className="flex items-center">Urgent category name<InfoTip k="urgentLabel" /></Label>
+                <Input id="ul" placeholder="e.g. Applications & recruiter actions" value={urgentLabel} onChange={(e) => setUrgentLabel(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="ll">Long-term category name</Label>
+                <Label htmlFor="ll" className="flex items-center">Long-term category name<InfoTip k="longtermLabel" /></Label>
                 <Input
                   id="ll"
+                  placeholder="e.g. Skills & portfolio"
                   value={longtermLabel}
                   onChange={(e) => setLongtermLabel(e.target.value)}
                 />
               </div>
             </div>
             <div className="space-y-3">
-              <Label>
+              <Label className="flex flex-wrap items-center">
                 Split: {urgentShare}% {urgentLabel} / {100 - urgentShare}% {longtermLabel}
+                <InfoTip k="split" />
               </Label>
               <Slider
                 value={[urgentShare]}
@@ -244,22 +247,22 @@ function Onboarding() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="vl">What are you optimising for?</Label>
-              <Input id="vl" value={valueLabel} onChange={(e) => setValueLabel(e.target.value)} />
+              <Label htmlFor="vl" className="flex items-center">What are you optimising for?<InfoTip k="valueLabel" /></Label>
+              <Input id="vl" placeholder="e.g. career and income" value={valueLabel} onChange={(e) => setValueLabel(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="pn">Priority notes</Label>
+              <Label htmlFor="pn" className="flex items-center">Priority notes<InfoTip k="priorityNotes" /></Label>
               <Textarea
                 id="pn"
                 rows={3}
-                placeholder="Anything Next Action should always keep in mind"
+                placeholder="e.g. Interviews always come first. No work after 9pm."
                 value={priorityNotes}
                 onChange={(e) => setPriorityNotes(e.target.value)}
               />
             </div>
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="space-y-2">
-                <Label>Coaching tone</Label>
+                <Label className="flex items-center">Coaching tone<InfoTip k="coachingTone" /></Label>
                 <Select value={tone} onValueChange={setTone}>
                   <SelectTrigger>
                     <SelectValue />
@@ -274,11 +277,11 @@ function Onboarding() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="lang">Reply language</Label>
-                <Input id="lang" value={language} onChange={(e) => setLanguage(e.target.value)} />
+                <Label htmlFor="lang" className="flex items-center">Reply language<InfoTip k="replyLanguage" /></Label>
+                <Input id="lang" placeholder="e.g. English" value={language} onChange={(e) => setLanguage(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label>Timezone</Label>
+                <Label className="flex items-center">Timezone<InfoTip k="timezone" /></Label>
                 <Select value={timezone} onValueChange={setTimezone}>
                   <SelectTrigger>
                     <SelectValue />
@@ -314,8 +317,9 @@ function Onboarding() {
               <div key={i} className="panel space-y-4 p-5">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label>Project name</Label>
+                    <Label className="flex items-center">Project name<InfoTip k="projectName" /></Label>
                     <Input
+                      placeholder="e.g. Product designer job hunt"
                       value={p.name}
                       onChange={(e) =>
                         setProjects((prev) =>
@@ -325,7 +329,7 @@ function Onboarding() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Deadline</Label>
+                    <Label className="flex items-center">Deadline<InfoTip k="deadline" /></Label>
                     <Input
                       type="date"
                       value={p.deadline}
@@ -338,8 +342,9 @@ function Onboarding() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Goal</Label>
+                  <Label className="flex items-center">Goal<InfoTip k="goal" /></Label>
                   <Input
+                    placeholder="e.g. Get a product designer job"
                     value={p.goal}
                     onChange={(e) =>
                       setProjects((prev) =>
@@ -350,7 +355,7 @@ function Onboarding() {
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label>Category</Label>
+                    <Label className="flex items-center">Category<InfoTip k="category" /></Label>
                     <Select
                       value={p.bucket}
                       onValueChange={(v) =>
@@ -369,7 +374,7 @@ function Onboarding() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Value to you: {p.value}/5</Label>
+                    <Label className="flex items-center">Importance: {p.value}/5<InfoTip k="importance" /></Label>
                     <Slider
                       value={[p.value]}
                       min={1}

@@ -284,7 +284,7 @@ export function ActiveSession({
         <Banner text="How did this session go?">
           <div className="flex w-full flex-wrap gap-2">
             {["Completed", "Materially advanced", "Not really"].map((o) => (
-              <Button key={o} size="sm" variant={pickOutcome === o ? "default" : "outline"} onClick={() => setPickOutcome(o)}>{o}</Button>
+              <Button key={o} size="sm" variant={pickOutcome === o ? "default" : "outline"} onClick={() => setPickOutcome(o)}>{o === "Materially advanced" ? "Made progress" : o}</Button>
             ))}
           </div>
           <select value={pickId} onChange={(e) => setPickId(e.target.value)} className="w-full rounded-md border border-border bg-background p-2">
