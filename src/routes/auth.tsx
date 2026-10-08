@@ -90,6 +90,7 @@ function AuthPage() {
             <Input
               id="email"
               type="email"
+              placeholder="e.g. priya@gmail.com"
               autoComplete="email"
               required
               value={email}
