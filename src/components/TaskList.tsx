@@ -120,7 +120,7 @@ export function TaskList({ projectId }: { projectId: string }) {
                     aria-label={done ? "Mark not done" : "Mark done"}
                     onClick={() => {
                       if (done) void setStatus(t.id, "todo");
-                      else { setPicking(picking === t.id ? null : t.id); setPickDate(yesterdayYmd); }
+                      else { setPicking(picking === t.id ? null : t.id); setPickDate(""); }
                     }}
                   >
                     {done ? "☑" : "☐"}
