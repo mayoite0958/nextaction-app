@@ -34,10 +34,7 @@ export function InstallAndroid() {
 
   if (installed) {
     return (
-      <div className="space-y-2 text-sm">
-        <p className="font-medium">✅ Next Action is installed.</p>
-        <p className="text-muted-foreground">Tap Share in any app (YouTube, Chrome…) → Next Action.</p>
-      </div>
+      <p className="text-sm font-medium">✅ Installed. Now tap Share in any app → Next Action</p>
     );
   }
 
@@ -48,7 +45,7 @@ export function InstallAndroid() {
           <a href={`${APP_ORIGIN}/connect-phone`}>Open the app in Chrome to install</a>
         </Button>
       ) : evt ? (
-        <Button onClick={install}>📲 Install Next Action</Button>
+        <Button onClick={install}>📲 Install app</Button>
       ) : (
         <ol className="list-decimal space-y-1 pl-5">
           <li>Open this page in <b>Chrome</b>.</li>

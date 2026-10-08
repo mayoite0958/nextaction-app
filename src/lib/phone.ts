@@ -15,9 +15,17 @@ export type Device = "desktop" | "iphone" | "android" | "inapp";
 
 export function detectDevice(ua: string): Device {
   if (/Instagram|FBAN|FBAV|FB_IAB|LinkedInApp|WhatsApp/i.test(ua)) return "inapp";
+  // Android WebView marks itself with "; wv)" in the user agent.
+  if (/Android/i.test(ua) && /;\s*wv\)/.test(ua)) return "inapp";
   if (/iPhone|iPad|iPod/i.test(ua)) return "iphone";
   if (/Android/i.test(ua)) return "android";
   return "desktop";
+}
+
+/** Android intent link that opens the given path of the live app in Chrome. */
+export function chromeIntentUrl(pathAndQuery: string) {
+  const host = new URL(APP_ORIGIN).host;
+  return `intent://${host}${pathAndQuery}#Intent;scheme=https;package=com.android.chrome;end`;
 }
 
 export function connectUrl(key: string) {
