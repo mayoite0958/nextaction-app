@@ -39,7 +39,9 @@ export function SessionPanel({
   resume,
   autoStart,
   onSwitch,
+  onStart,
 }: {
+  onStart?: (() => void) | undefined;
   onSwitch?: ((t: SwitchTarget) => void) | undefined;
   resume?: { id: string; startedAt: string } | undefined;
   recommendation: Recommendation;
@@ -73,6 +75,7 @@ export function SessionPanel({
   const [taskId, setTaskId] = useState<string | null>(recommendation.task_id);
 
   async function start() {
+    onStart?.();
     setBusy(true);
     const now = new Date().toISOString();
     let tid = recommendation.task_id;

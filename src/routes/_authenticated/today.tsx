@@ -98,6 +98,10 @@ function Today() {
 
   // Start a session straight from a project card, without a recommendation.
   function startDirect(p: Pick<ProjectRow, "id" | "name" | "next_likely_action">, task?: { id: string; title: string } | null) {
+    reqId.current++;
+    setIsDraft(false);
+    setRefining(false);
+    setSlow(false);
     setAskError(null);
     setAutoStart(true);
     setResume(null);
@@ -393,6 +397,7 @@ function Today() {
             {recommendation.next_action && (
               <SessionPanel
                 key={`${recommendation.next_action}${resume ? resume.id : ""}${sessionNonce}`}
+                onStart={() => { reqId.current++; setRefining(false); setAsking(false); setSlow(false); setIsDraft(false); }}
                 onSwitch={({ project, task }) => startDirect(project, task)}
                 recommendation={recommendation}
                 timeMin={Math.max(1, Number.parseInt(timeMin, 10) || 30)}
