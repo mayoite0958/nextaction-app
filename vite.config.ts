@@ -12,4 +12,9 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  vite: {
+    // Pre-bundle the date picker deps so Vite never re-optimizes mid-session
+    // (that reload mixes two React copies → "reading 'useContext'" crash).
+    optimizeDeps: { include: ["date-fns", "react-day-picker"] },
+  },
 });
