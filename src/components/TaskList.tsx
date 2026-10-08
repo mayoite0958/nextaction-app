@@ -14,6 +14,9 @@ export function TaskList({ projectId }: { projectId: string }) {
   const [title, setTitle] = useState("");
   const [est, setEst] = useState("");
   const [energy, setEnergy] = useState("Medium");
+  const [due, setDue] = useState("");
+  const [picking, setPicking] = useState<string | null>(null);
+  const [pickDate, setPickDate] = useState("");
 
   const q = useQuery({
     queryKey: ["tasks", projectId],
