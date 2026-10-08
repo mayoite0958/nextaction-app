@@ -48,10 +48,9 @@ export function DatePicker({
       <PopoverContent className="w-auto p-0" align="start">
         <Calendar
           mode="single"
-          selected={selected}
-          defaultMonth={selected}
+          {...(selected ? { selected, defaultMonth: selected } : {})}
           onSelect={(d) => { if (d) { onChange(toYmd(d)); setOpen(false); } }}
-          disabled={noFuture ? { after: today } : undefined}
+          {...(noFuture ? { disabled: { after: today } } : {})}
           initialFocus
           className={cn("p-3 pointer-events-auto")}
         />
