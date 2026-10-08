@@ -40,7 +40,9 @@ export function SessionPanel({
   autoStart,
   onSwitch,
   onStart,
+  resourceOpened,
 }: {
+  resourceOpened?: boolean;
   onStart?: (() => void) | undefined;
   onSwitch?: ((t: SwitchTarget) => void) | undefined;
   resume?: { id: string; startedAt: string } | undefined;
@@ -62,6 +64,11 @@ export function SessionPanel({
   const [lessStuck, setLessStuck] = useState<number | null>(null);
   const [milestone, setMilestone] = useState<boolean | null>(null);
   const [resourceUsed, setResourceUsed] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (!resourceOpened) return;
+    setResourceUsed(true);
+    if (sessionId) void supabase.from("sessions").update({ resource_used: true }).eq("id", sessionId);
+  }, [resourceOpened, sessionId]);
   const [project, setProject] = useState<ProjectRow | null>(null);
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [plusCount, setPlusCount] = useState(0);

@@ -31,6 +31,9 @@ const LAST_KEY = "na_last_rec_inputs";
 import type { Database } from "@/integrations/supabase/types";
 import { ExternalLink, ResourceThumb } from "@/components/ResourceThumb";
 import { youtubeWatchUrl } from "@/lib/youtube";
+import { ResurfaceCard } from "@/components/ResurfaceCard";
+import { RestartCard } from "@/components/RestartCard";
+import { daysSince } from "@/lib/categories";
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"];
 
@@ -120,6 +123,7 @@ function Today() {
     setSessionNonce((n) => n + 1);
   }
   const [sessionNonce, setSessionNonce] = useState(0);
+  const [openedResource, setOpenedResource] = useState<string | null>(null);
 
   // Bring back a session that was still running when the page reloaded.
   useEffect(() => {
@@ -372,11 +376,16 @@ function Today() {
                 <span className="font-semibold">{recommendation.project_name}</span>
               </p>
             )}
+            {(() => {
+              const rp = projects.find((p) => p.id === recommendation.project_id);
+              const since = rp ? daysSince(rp.last_worked_at) : null;
+              return rp && since != null && since >= 2 ? <RestartCard project={rp} /> : null;
+            })()}
+            <ResurfaceCard id={recommendation.resource_id} onOpen={() => setOpenedResource(recommendation.resource_id)} />
             {recommendation.next_action && (
               <p className="text-base font-medium">{recommendation.next_action}</p>
             )}
             <RecTask rec={recommendation} />
-            <RecResource id={recommendation.resource_id} />
             {recommendation.done_looks_like && (
               <p>
                 <span className="text-muted-foreground">Done looks like: </span>
@@ -397,6 +406,7 @@ function Today() {
             {recommendation.next_action && (
               <SessionPanel
                 key={`${recommendation.next_action}${resume ? resume.id : ""}${sessionNonce}`}
+                resourceOpened={!!recommendation.resource_id && openedResource === recommendation.resource_id}
                 onStart={() => { reqId.current++; setRefining(false); setAsking(false); setSlow(false); setIsDraft(false); }}
                 onSwitch={({ project, task }) => startDirect(project, task)}
                 recommendation={recommendation}
@@ -548,35 +558,6 @@ function Today() {
         </div>
       )}
     </AppShell>
-  );
-}
-
-function RecResource({ id }: { id: string | null }) {
-  const q = useQuery({
-    queryKey: ["resource", id],
-    enabled: !!id,
-    queryFn: async () => {
-      const { data, error } = await supabase.from("resources").select("*").eq("id", id!).maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-  });
-  if (!id || !q.data) return null;
-  const r = q.data;
-  return (
-    <div className="rounded-md border border-border p-3">
-      <p className="text-xs uppercase tracking-widest text-muted-foreground">📚 Saved resource for this step</p>
-      <p className="mt-1 font-medium">
-        {r.title || r.url}
-        {r.resource_type && <span className="ml-2 text-sm text-muted-foreground">{r.resource_type}</span>}
-      </p>
-      {r.url && (
-        <div className="mt-2 flex items-start gap-3 text-sm">
-          <ResourceThumb url={r.url} title={r.title} />
-          <ExternalLink url={youtubeWatchUrl(r.url)} />
-        </div>
-      )}
-    </div>
   );
 }
 
