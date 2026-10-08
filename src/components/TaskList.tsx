@@ -14,6 +14,9 @@ export function TaskList({ projectId }: { projectId: string }) {
   const [title, setTitle] = useState("");
   const [est, setEst] = useState("");
   const [energy, setEnergy] = useState("Medium");
+  const [due, setDue] = useState("");
+  const [picking, setPicking] = useState<string | null>(null);
+  const [pickDate, setPickDate] = useState("");
 
   const q = useQuery({
     queryKey: ["tasks", projectId],
@@ -39,22 +42,42 @@ export function TaskList({ projectId }: { projectId: string }) {
       est_minutes: Number.isFinite(n) && n > 0 ? n : null,
       energy,
       status: "todo",
+      due_date: due || null,
     });
     if (error) { toast.error(error.message); return; }
     setTitle("");
     setEst("");
+    setDue("");
     void refresh();
   }
 
-  async function setStatus(id: string, status: string) {
+  async function setStatus(id: string, status: string, doneAt?: string) {
     const { error } = await supabase
       .from("tasks")
-      .update({ status, done_at: status === "done" ? new Date().toISOString() : null })
+      .update({ status, done_at: status === "done" ? (doneAt ?? new Date().toISOString()) : null })
       .eq("id", id);
     if (error) { toast.error(error.message); return; }
+    setPicking(null);
     await refresh();
     await recalcProjectProgress(projectId);
     void qc.invalidateQueries({ queryKey: ["projects"] });
+  }
+
+  // Noon local time on the chosen day, so it lands on the right calendar day.
+  const dayIso = (ymd: string) => new Date(`${ymd}T12:00:00`).toISOString();
+  const ymdOf = (iso: string) => {
+    const d = new Date(iso);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  };
+  const todayYmd = ymdOf(new Date().toISOString());
+  const yesterdayYmd = ymdOf(new Date(Date.now() - 86400000).toISOString());
+
+  async function changeDoneDate(id: string, ymd: string) {
+    if (!ymd || ymd > todayYmd) return;
+    const { error } = await supabase.from("tasks").update({ done_at: dayIso(ymd) }).eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    void refresh();
+    void qc.invalidateQueries();
   }
 
   const tasks = q.data ?? [];
@@ -78,6 +101,10 @@ export function TaskList({ projectId }: { projectId: string }) {
             </Button>
           ))}
         </div>
+        <label className="flex items-center gap-1 text-xs text-muted-foreground">
+          Planned day
+          <Input className="w-36" type="date" aria-label="Planned day (optional)" value={due} onChange={(e) => setDue(e.target.value)} />
+        </label>
         <Button onClick={add} disabled={!title.trim()}>Add</Button>
       </div>
       {tasks.length === 0 ? (
@@ -87,23 +114,50 @@ export function TaskList({ projectId }: { projectId: string }) {
           {tasks.map((t) => {
             const done = t.status === "done";
             return (
-              <li key={t.id} className="flex items-center gap-3 rounded-md border border-border p-2 text-sm">
-                <button
-                  type="button"
-                  className="text-lg"
-                  aria-label={done ? "Mark not done" : "Mark done"}
-                  onClick={() => setStatus(t.id, done ? "todo" : "done")}
-                >
-                  {done ? "☑" : "☐"}
-                </button>
-                <span className={`flex-1 ${done ? "text-muted-foreground line-through" : ""}`}>
-                  {t.title}
-                  {t.status === "doing" && <span className="ml-2 text-xs text-primary">in progress</span>}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  {t.est_minutes ? `${t.est_minutes} min · ` : ""}{t.energy ?? ""}
-                </span>
-                <Button size="sm" variant="ghost" onClick={() => setStatus(t.id, "dropped")}>Drop</Button>
+              <li key={t.id} className="rounded-md border border-border p-2 text-sm">
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    className="text-lg"
+                    aria-label={done ? "Mark not done" : "Mark done"}
+                    onClick={() => {
+                      if (done) void setStatus(t.id, "todo");
+                      else { setPicking(picking === t.id ? null : t.id); setPickDate(yesterdayYmd); }
+                    }}
+                  >
+                    {done ? "☑" : "☐"}
+                  </button>
+                  <span className={`min-w-0 flex-1 break-words ${done ? "text-muted-foreground line-through" : ""}`}>
+                    {t.title}
+                    {t.status === "doing" && <span className="ml-2 text-xs text-primary">in progress</span>}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {t.est_minutes ? `${t.est_minutes} min · ` : ""}{t.energy ?? ""}
+                    {!done && t.due_date ? ` · planned ${new Date(`${t.due_date}T12:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric" })}` : ""}
+                  </span>
+                  {done && t.done_at && (
+                    <label className="flex items-center gap-1 text-xs text-muted-foreground">
+                      Done on
+                      <input
+                        type="date"
+                        className="rounded border border-border bg-background px-1"
+                        max={todayYmd}
+                        value={ymdOf(t.done_at)}
+                        onChange={(e) => changeDoneDate(t.id, e.target.value)}
+                      />
+                    </label>
+                  )}
+                  <Button size="sm" variant="ghost" onClick={() => setStatus(t.id, "dropped")}>Drop</Button>
+                </div>
+                {picking === t.id && (
+                  <div className="mt-2 flex flex-wrap items-center gap-2 pl-8 text-xs">
+                    <span className="text-muted-foreground">When did you finish it?</span>
+                    <Button size="sm" onClick={() => setStatus(t.id, "done")}>Today</Button>
+                    <Button size="sm" variant="outline" onClick={() => setStatus(t.id, "done", dayIso(yesterdayYmd))}>Yesterday</Button>
+                    <input type="date" className="rounded border border-border bg-background px-1 py-1" max={todayYmd} value={pickDate} onChange={(e) => setPickDate(e.target.value)} />
+                    <Button size="sm" variant="outline" disabled={!pickDate || pickDate > todayYmd} onClick={() => setStatus(t.id, "done", dayIso(pickDate))}>Save date</Button>
+                  </div>
+                )}
               </li>
             );
           })}

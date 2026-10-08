@@ -1,6 +1,7 @@
 import { InfoTip } from "@/components/InfoTip";
 import type { HelpKey } from "@/lib/help";
 import { RestartCard } from "@/components/RestartCard";
+import { LogPastWork } from "@/components/LogPastWork";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
@@ -346,12 +347,13 @@ function ProjectPage() {
       )}
 
       {!isNew && p && (
-        <div className="mt-4">
+        <div className="mt-4 flex flex-wrap gap-2">
           {showRecap ? (
             <RestartCard project={{ id: p.id, name: p.name, next_likely_action: p.next_likely_action, blocker: p.blocker }} onClose={() => setShowRecap(false)} />
           ) : (
             <Button size="sm" variant="outline" onClick={() => setShowRecap(true)}>👋 Recap</Button>
           )}
+          <LogPastWork projectId={p.id} />
         </div>
       )}
 

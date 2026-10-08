@@ -1,4 +1,5 @@
 import { InfoTip } from "@/components/InfoTip";
+import { LogPastWork } from "@/components/LogPastWork";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
@@ -483,6 +484,8 @@ function Today() {
           </p>
         )}
       </section>
+
+      <div className="mt-4"><LogPastWork /></div>
 
       <div className="mt-10 flex items-center justify-between">
         <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
