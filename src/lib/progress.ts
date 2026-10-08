@@ -5,9 +5,9 @@ type ProjectRow = Database["public"]["Tables"]["projects"]["Row"];
 
 export type ProjectType = "finish_line" | "countable" | "ongoing";
 export const PROJECT_TYPES: { value: ProjectType; label: string; hint: string }[] = [
-  { value: "finish_line", label: "Finish line", hint: "Has a clear end, tracked by milestones" },
-  { value: "countable", label: "Countable", hint: "A number of things to get through" },
-  { value: "ongoing", label: "Ongoing", hint: "A weekly habit with no end" },
+  { value: "finish_line", label: "Has an end goal", hint: "Finishes when a goal is reached, tracked by milestones" },
+  { value: "countable", label: "Has a number of parts", hint: "A set count of pieces to get through" },
+  { value: "ongoing", label: "Habit", hint: "Something you repeat each week" },
 ];
 
 export type Milestone = { title: string; weight: number; done: boolean };
