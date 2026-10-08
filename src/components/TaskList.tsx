@@ -39,22 +39,42 @@ export function TaskList({ projectId }: { projectId: string }) {
       est_minutes: Number.isFinite(n) && n > 0 ? n : null,
       energy,
       status: "todo",
+      due_date: due || null,
     });
     if (error) { toast.error(error.message); return; }
     setTitle("");
     setEst("");
+    setDue("");
     void refresh();
   }
 
-  async function setStatus(id: string, status: string) {
+  async function setStatus(id: string, status: string, doneAt?: string) {
     const { error } = await supabase
       .from("tasks")
-      .update({ status, done_at: status === "done" ? new Date().toISOString() : null })
+      .update({ status, done_at: status === "done" ? (doneAt ?? new Date().toISOString()) : null })
       .eq("id", id);
     if (error) { toast.error(error.message); return; }
+    setPicking(null);
     await refresh();
     await recalcProjectProgress(projectId);
     void qc.invalidateQueries({ queryKey: ["projects"] });
+  }
+
+  // Noon local time on the chosen day, so it lands on the right calendar day.
+  const dayIso = (ymd: string) => new Date(`${ymd}T12:00:00`).toISOString();
+  const ymdOf = (iso: string) => {
+    const d = new Date(iso);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  };
+  const todayYmd = ymdOf(new Date().toISOString());
+  const yesterdayYmd = ymdOf(new Date(Date.now() - 86400000).toISOString());
+
+  async function changeDoneDate(id: string, ymd: string) {
+    if (!ymd || ymd > todayYmd) return;
+    const { error } = await supabase.from("tasks").update({ done_at: dayIso(ymd) }).eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    void refresh();
+    void qc.invalidateQueries();
   }
 
   const tasks = q.data ?? [];
