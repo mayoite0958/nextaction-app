@@ -2,8 +2,13 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { MicButton } from "@/components/MicButton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { CAPTURE_URL, KEY_STORAGE } from "@/lib/phone";
 
 // Receives links from Android Share and the desktop bookmark, asks for a note, then sends to n8n.
@@ -31,7 +36,8 @@ export const Route = createFileRoute("/share")({
 function SharePage() {
   const { link: shared, text, title, source, k } = Route.useSearch();
   const [key, setKey] = useState<string | null | undefined>(undefined);
-  const [note, setNote] = useState("");
+  const [projectId, setProjectId] = useState<string>("auto");
+  const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; msg: string } | null>(null);
   const link = shared || text?.match(/https?:\/\/\S+/)?.[0] || text || "";
@@ -41,8 +47,20 @@ function SharePage() {
     setKey(k || localStorage.getItem(KEY_STORAGE));
   }, [k]);
 
+  useEffect(() => {
+    if (!key) return;
+    void fetch("/api/public/share-projects", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key }),
+    })
+      .then((r) => (r.ok ? r.json() : { projects: [] }))
+      .then((d: { projects?: { id: string; name: string }[] }) => setProjects(d.projects ?? []))
+      .catch(() => {});
+  }, [key]);
+
   async function send() {
-    if (!key || !note.trim()) return;
+    if (!key) return;
     setSending(true);
     try {
       const r = await fetch("/api/public/share-capture", {
@@ -51,7 +69,8 @@ function SharePage() {
         body: JSON.stringify({
           key,
           url: link,
-          note: note.trim(),
+          note: "",
+          project_id: projectId === "auto" ? null : projectId,
           title: title ?? "",
           source: source ?? "android",
         }),
@@ -80,17 +99,21 @@ function SharePage() {
         <div className="mt-6 space-y-3">
           <p className="text-sm font-medium">{title || link}</p>
           {title && <p className="break-all text-xs text-muted-foreground">{link}</p>}
-          <div className="flex gap-2">
-            <Input
-              autoFocus
-              placeholder="What does this help with?"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && send()}
-            />
-            <MicButton onText={(t) => setNote((n) => (n ? `${n} ${t}` : t))} />
-          </div>
-          <Button onClick={send} disabled={sending || !note.trim() || !link}>
+          <label className="block space-y-1 text-sm">
+            <span className="text-muted-foreground">Project</span>
+            <Select value={projectId} onValueChange={setProjectId}>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="auto">Let AI pick</SelectItem>
+                {projects.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </label>
+          <Button onClick={send} className="w-full" disabled={sending || !link}>
             {sending ? "Saving…" : "Save"}
           </Button>
           {result && !result.ok && <p className="text-sm text-destructive">{result.msg}</p>}
