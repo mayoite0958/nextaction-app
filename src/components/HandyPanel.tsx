@@ -27,12 +27,15 @@ export function HandyPanel({ sessionId, projectId, action, trigger, events }: {
     setLoading(true);
     void (async () => {
       try {
-        const { data } = await supabase
+        // Only offer resources saved to THIS project, or not tied to any project.
+        let query = supabase
           .from("resources")
           .select("id,title,url,resource_type,topic,problem_helped,project_id")
           .order("created_at", { ascending: false })
           .limit(100);
-        const all = (data ?? []) as Res[];
+        if (projectId) query = query.or(`project_id.eq.${projectId},project_id.is.null`);
+        const { data } = await query;
+        const all = ((data ?? []) as Res[]).filter((r) => !projectId || !r.project_id || r.project_id === projectId);
         if (!all.length) { if (my === seq.current) setItems([]); return; }
         const matches = await matchResources({
           trigger: trigger.kind,
