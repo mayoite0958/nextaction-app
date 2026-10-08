@@ -1,3 +1,4 @@
+import { RestartCard } from "@/components/RestartCard";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
@@ -83,6 +84,7 @@ const EMPTY: Form = {
 };
 
 function ProjectPage() {
+  const [showRecap, setShowRecap] = useState(false);
   const { id } = Route.useParams();
   const isNew = id === "new";
   const navigate = useNavigate();
@@ -345,6 +347,16 @@ function ProjectPage() {
           {left === null ? "No deadline" : left < 0 ? `${Math.abs(left)} days overdue` : `${left} days left`}
           {" · "}Last worked {relativeTime(p?.last_worked_at ?? null)}
         </p>
+      )}
+
+      {!isNew && p && (
+        <div className="mt-4">
+          {showRecap ? (
+            <RestartCard project={{ id: p.id, name: p.name, next_likely_action: p.next_likely_action }} onClose={() => setShowRecap(false)} />
+          ) : (
+            <Button size="sm" variant="outline" onClick={() => setShowRecap(true)}>👋 Recap</Button>
+          )}
+        </div>
       )}
 
       {!isNew && <TaskList projectId={id} />}
