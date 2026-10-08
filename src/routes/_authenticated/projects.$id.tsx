@@ -348,7 +348,7 @@ function ProjectPage() {
       {!isNew && p && (
         <div className="mt-4">
           {showRecap ? (
-            <RestartCard project={{ id: p.id, name: p.name, next_likely_action: p.next_likely_action }} onClose={() => setShowRecap(false)} />
+            <RestartCard project={{ id: p.id, name: p.name, next_likely_action: p.next_likely_action, blocker: p.blocker }} onClose={() => setShowRecap(false)} />
           ) : (
             <Button size="sm" variant="outline" onClick={() => setShowRecap(true)}>👋 Recap</Button>
           )}
