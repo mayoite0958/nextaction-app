@@ -1,6 +1,7 @@
 import { InfoTip } from "@/components/InfoTip";
 import type { HelpKey } from "@/lib/help";
 import { RestartCard } from "@/components/RestartCard";
+import { LogPastWork } from "@/components/LogPastWork";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
