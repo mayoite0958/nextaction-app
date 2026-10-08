@@ -160,11 +160,10 @@ function groupBy<T>(rows: T[], key: (r: T) => string | null, max: number): Recor
  * Ask n8n for the user's next action with a full context packet
  * (now, settings, balance, projects + tasks/sessions/notes, rejections, urgent items).
  */
-export async function requestRecommendation(input: {
-  time_min: number;
-  energy: Energy;
-  rejected_actions: string[];
-}): Promise<Recommendation> {
+export type RecommendContext = Awaited<ReturnType<typeof loadRecommendContext>>;
+
+/** Load everything the recommend request (and the instant draft) needs. */
+export async function loadRecommendContext() {
   const [{ data: settings, error: settingsError }, { data: projects, error: projectsError }] =
     await Promise.all([
       supabase.from("user_settings").select("*").maybeSingle(),
@@ -238,6 +237,43 @@ export async function requestRecommendation(input: {
     doneSessions: sessions.data ?? [],
     openTaskCount: (id) => allTasks.filter((t) => t.project_id === id).length,
   });
+  return { settings, targets, recent_summary, today, ranked, tasksBy, sessionsBy, notesBy, rejections, urgent, resources, tz, allTasks };
+}
+
+const ENERGY_RANK: Record<string, number> = { low: 1, medium: 2, high: 3 };
+
+/** Instant in-app suggestion: top-scoring project + first open task that fits time and energy. */
+export function draftRecommendation(ctx: RecommendContext, time_min: number, energy: Energy): Recommendation | null {
+  const best = ctx.ranked.top[0] ?? ctx.ranked.others[0];
+  if (!best) return null;
+  const p = best.project;
+  const cap = ENERGY_RANK[energy.toLowerCase()] ?? 2;
+  const task = ctx.allTasks.find(
+    (t) =>
+      t.project_id === p.id &&
+      (t.est_minutes == null || t.est_minutes <= time_min) &&
+      (ENERGY_RANK[(t.energy ?? "").toLowerCase()] ?? 0) <= cap,
+  );
+  return {
+    project_id: p.id,
+    project_name: p.name,
+    next_action: task?.title || p.next_likely_action || `Work on ${p.name}`,
+    done_looks_like: null,
+    why: best.score_reasons,
+    clarifying_question: null,
+    task_id: task?.id ?? null,
+    new_task_title: null,
+    est_minutes: null,
+    resource_id: null,
+  };
+}
+
+export async function requestRecommendation(
+  input: { time_min: number; energy: Energy; rejected_actions: string[] },
+  ctxIn?: RecommendContext,
+): Promise<Recommendation> {
+  const { settings, targets, recent_summary, today, ranked, tasksBy, sessionsBy, notesBy, rejections, urgent, resources, tz } =
+    ctxIn ?? (await loadRecommendContext());
   const now = new Date();
   const fmt = (o: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat("en-CA", { timeZone: tz, ...o }).format(now);
 
