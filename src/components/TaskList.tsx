@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/DatePicker";
 import { supabase } from "@/integrations/supabase/client";
 import { recalcProjectProgress } from "@/lib/progress";
 
@@ -101,10 +102,7 @@ export function TaskList({ projectId }: { projectId: string }) {
             </Button>
           ))}
         </div>
-        <label className="flex items-center gap-1 text-xs text-muted-foreground">
-          Planned day
-          <Input className="w-36" type="date" aria-label="Planned day (optional)" value={due} onChange={(e) => setDue(e.target.value)} />
-        </label>
+        <DatePicker className="w-40" value={due} onChange={setDue} placeholder="Planned day" clearable />
         <Button onClick={add} disabled={!title.trim()}>Add</Button>
       </div>
       {tasks.length === 0 ? (
@@ -136,16 +134,10 @@ export function TaskList({ projectId }: { projectId: string }) {
                     {!done && t.due_date ? ` · planned ${new Date(`${t.due_date}T12:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric" })}` : ""}
                   </span>
                   {done && t.done_at && (
-                    <label className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
                       Done on
-                      <input
-                        type="date"
-                        className="rounded border border-border bg-background px-1"
-                        max={todayYmd}
-                        value={ymdOf(t.done_at)}
-                        onChange={(e) => changeDoneDate(t.id, e.target.value)}
-                      />
-                    </label>
+                      <DatePicker size="sm" value={ymdOf(t.done_at)} onChange={(d) => changeDoneDate(t.id, d)} noFuture />
+                    </span>
                   )}
                   <Button size="sm" variant="ghost" onClick={() => setStatus(t.id, "dropped")}>Drop</Button>
                 </div>
@@ -154,8 +146,7 @@ export function TaskList({ projectId }: { projectId: string }) {
                     <span className="text-muted-foreground">When did you finish it?</span>
                     <Button size="sm" onClick={() => setStatus(t.id, "done")}>Today</Button>
                     <Button size="sm" variant="outline" onClick={() => setStatus(t.id, "done", dayIso(yesterdayYmd))}>Yesterday</Button>
-                    <input type="date" className="rounded border border-border bg-background px-1 py-1" max={todayYmd} value={pickDate} onChange={(e) => setPickDate(e.target.value)} />
-                    <Button size="sm" variant="outline" disabled={!pickDate || pickDate > todayYmd} onClick={() => setStatus(t.id, "done", dayIso(pickDate))}>Save date</Button>
+                    <DatePicker size="sm" value={pickDate} onChange={(d) => { setPickDate(d); void setStatus(t.id, "done", dayIso(d)); }} placeholder="Other day" noFuture />
                   </div>
                 )}
               </li>
