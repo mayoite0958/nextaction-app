@@ -1,0 +1,182 @@
+{
+  "name": "recommend",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "recommend",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -288,
+        0
+      ],
+      "id": "3dbc975e-400f-41d1-a6fd-999e6d660b6e",
+      "name": "Webhook",
+      "webhookId": "adf42868-b30a-450d-8fee-6fef85a1a8d4"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a project execution manager. Choose ONE project and ONE next action for this work session.\n\nPRIORITY ORDER\n1. DEADLINES: a hard deadline today or tomorrow overrides everything, even if blocked.\n2. CATEGORY BALANCE (a real rule, not a tie-breaker): compare each category's target share with its actual share of the last 7 days. If a category has had no session in 7 days or is far below target, choose it when time and energy fit (short or low-energy slots suit health and habit projects), unless a deadline within 2 days requires otherwise.\n3. PROJECT PROGRESS: a high-value project at 75%+ gets a boost (finishing beats starting). A value 4–5 project not worked on for 7+ days gets a nudge.\n4. VALUE: prefer higher value_score. \"Value\" for this user means: {{ $('Webhook').first().json.body.settings.value_label }}\n5. ACTIONABILITY: an actionable project may beat a slightly higher-value blocked one (deadlines excepted).\n6. FIT: the action must fit the time and energy given. Low energy = a lighter step. Never suggest finishing a whole project. If still tied, pick the smallest meaningful step.\n\nHOW TO USE THE DATA\n- Projects are pre-ranked. \"top_projects\" have full detail (tasks, recent sessions, notes, resources, score_reasons). \"other_projects\" are one-line summaries. Usually pick from top_projects, but choose from other_projects if the user's rules, time or energy clearly fit better.\n- Prefer an existing open task that fits: return its id as task_id. Only if none fits, set task_id to null and write new_task_title (one concrete task) with est_minutes.\n- Read recent_sessions: if the last session on a project ended \"Not really\" or with less_stuck ≤ 2, pick a smaller unblocking step, not the same step again.\n- Use notes for decisions already made; don't re-suggest rejected or already-decided options.\n- Avoid task types the user rejected repeatedly in the last 14 days unless a deadline forces it.\n- Set resource_id ONLY if one saved resource directly helps this exact step: a tutorial or technique for a \"don't know how\" blocker, or an inspiration for a creative/design step. Otherwise null. Never more than one.\n- For task_id and resource_id, return a real id from the data or JSON null, never the text \"null\" or an invented id.\n\nIn \"why\", name the main factor in one sentence (e.g. \"Health has had no session in 9 days\", \"85% done, so finishing it ships your portfolio piece\", \"deadline tomorrow\").\n\nUSER'S RULES (follow unless they conflict with a deadline): {{ $('Webhook').first().json.body.settings.priority_notes || 'none' }}\nTone: {{ $('Webhook').first().json.body.settings.coaching_tone }}. Write in {{ $('Webhook').first().json.body.settings.reply_language }}.\n\nDo not repeat these rejected actions: {{ JSON.stringify($('Webhook').first().json.body.rejected_actions || []) }}\nIf 2 or more were rejected, fill clarifying_question with ONE short question; otherwise \"\".\n\nCONTEXT\nNow: {{ JSON.stringify($('Webhook').first().json.body.now || {}) }}\nSession: {{ $('Webhook').first().json.body.time_min }} minutes, energy {{ $('Webhook').first().json.body.energy }}\nCategory targets (%): {{ JSON.stringify($('Webhook').first().json.body.category_targets || {}) }}\nBalance (last 7 days and today): {{ JSON.stringify($('Webhook').first().json.body.balance || {}) }}\nRecently rejected (14 days): {{ JSON.stringify($('Webhook').first().json.body.rejections || []) }}\nOpen urgent items: {{ JSON.stringify($('Webhook').first().json.body.urgent_items || []) }}\nSaved resources: {{ JSON.stringify($('Webhook').first().json.body.resources || []) }}\n\nTOP PROJECTS (full detail): {{ JSON.stringify($('Webhook').first().json.body.top_projects || $('Webhook').first().json.body.projects || []) }}\nOTHER PROJECTS (summaries): {{ JSON.stringify($('Webhook').first().json.body.other_projects || []) }}",
+        "hasOutputParser": true,
+        "needsFallback": true,
+        "messages": {
+          "messageValues": []
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        -64,
+        0
+      ],
+      "id": "6de2454b-17a2-4d3e-a4a6-06fc93076f2a",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"project_id\": { \"type\": \"string\" },\n    \"project_name\": { \"type\": \"string\" },\n    \"next_action\": { \"type\": \"string\" },\n    \"done_looks_like\": { \"type\": \"string\" },\n    \"why\": { \"type\": \"string\" },\n    \"clarifying_question\": { \"type\": \"string\" },\n    \"task_id\": { \"type\": [\"string\", \"null\"] },\n    \"new_task_title\": { \"type\": \"string\" },\n    \"est_minutes\": { \"type\": \"number\" },\n    \"resource_id\": { \"type\": [\"string\", \"null\"] }\n  },\n  \"required\": [\"project_id\", \"project_name\", \"next_action\", \"done_looks_like\", \"why\", \"clarifying_question\", \"task_id\", \"new_task_title\", \"est_minutes\", \"resource_id\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        48,
+        176
+      ],
+      "id": "20dffdc9-4740-467f-9cca-eab35b1c8ce3",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        304,
+        16
+      ],
+      "id": "0a898986-f1fd-4bba-a65f-3ab925d98dc6",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.8-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        -176,
+        208
+      ],
+      "id": "eec24dee-4e4d-441c-a96d-7175e9e01730",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "wcYdZVBbFZO0DjQo",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.5-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        -64,
+        208
+      ],
+      "id": "b1990251-be51-4f76-9916-c9793cfa5b65",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "wcYdZVBbFZO0DjQo",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 1
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "57bc58c3-b569-46db-a2a5-ea784a476ef7",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d2fae09e5c4a972ec8b0d04be78febffb77827ffb27eca2e21c6a208b9195e59"
+  },
+  "nodeGroups": [],
+  "id": "k0RLWCH8TZ1CmGsj",
+  "tags": []
+}
