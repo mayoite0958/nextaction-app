@@ -1,0 +1,541 @@
+{
+  "name": "share-capture",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "share-capture",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -704,
+        16
+      ],
+      "id": "baca681c-9885-422e-9386-d13fffe0c8a5",
+      "name": "Webhook",
+      "webhookId": "4e0a305c-b069-4245-bd27-077eae3b9366"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "user_settings",
+        "limit": 1,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "capture_key",
+              "condition": "eq",
+              "keyValue": "={{ ($('Webhook').first().json.body.key || $('Webhook').first().json.body['key '] || '').trim() }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -512,
+        16
+      ],
+      "id": "3514aa37-e16d-4abc-907c-5f456668ebf1",
+      "name": "Find user",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "eYiHwWfQuKwHlv8X",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "e00dca8d-fb66-4688-94df-5f205ea0f3a7",
+              "leftValue": "={{ $json.user_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -352,
+        16
+      ],
+      "id": "b36fca35-62d1-4091-b1e1-6e594b8fe81f",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "=Invalid key",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        -160,
+        160
+      ],
+      "id": "e260b420-e2b3-4a0a-9f82-52b6dee3aeba",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "projects",
+        "returnAll": true,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "user_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Find user').first().json.user_id }}"
+            },
+            {
+              "keyName": "status",
+              "condition": "eq",
+              "keyValue": "active"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -160,
+        0
+      ],
+      "id": "d7b2710a-ba35-4487-8009-ea6f7fe6e8e5",
+      "name": "Get projects",
+      "credentials": {
+        "supabaseApi": {
+          "id": "eYiHwWfQuKwHlv8X",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.8-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        272,
+        224
+      ],
+      "id": "77fde168-7ff9-4eef-bd73-30f6fdac5836",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "wcYdZVBbFZO0DjQo",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"title\": { \"type\": \"string\" },\n    \"resource_type\": { \"type\": \"string\", \"enum\": [\"tutorial\", \"technique\", \"inspiration\"] },\n    \"topic\": { \"type\": \"string\" },\n    \"problem_helped\": { \"type\": \"string\" },\n    \"summary\": { \"type\": \"string\" },\n    \"project_id\": { \"type\": [\"string\", \"null\"] }\n  },\n  \"required\": [\"title\", \"resource_type\", \"topic\", \"problem_helped\", \"summary\", \"project_id\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        432,
+        192
+      ],
+      "id": "3240077d-5722-4547-bbf9-3011b86035cf",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "tableId": "resources",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "user_id",
+              "fieldValue": "={{ $('Find user').first().json.user_id }}"
+            },
+            {
+              "fieldId": "url",
+              "fieldValue": "={{ $('Webhook').first().json.body.url }}"
+            },
+            {
+              "fieldId": "user_note",
+              "fieldValue": "={{ $('Webhook').first().json.body.note || $('Webhook').first().json.body.title }}"
+            },
+            {
+              "fieldId": "source",
+              "fieldValue": "={{ $('Webhook').first().json.body.source || 'iphone' }}"
+            },
+            {
+              "fieldId": "classified",
+              "fieldValue": "true"
+            },
+            {
+              "fieldId": "title",
+              "fieldValue": "={{ $('Basic LLM Chain').first().json.output.title }}"
+            },
+            {
+              "fieldId": "resource_type",
+              "fieldValue": "={{ $('Basic LLM Chain').first().json.output.resource_type }}"
+            },
+            {
+              "fieldId": "topic",
+              "fieldValue": "={{ $('Basic LLM Chain').first().json.output.topic }}"
+            },
+            {
+              "fieldId": "problem_helped",
+              "fieldValue": "={{ $('Basic LLM Chain').first().json.output.problem_helped }}"
+            },
+            {
+              "fieldId": "summary",
+              "fieldValue": "={{ $('Basic LLM Chain').first().json.output.summary }}"
+            },
+            {
+              "fieldId": "project_id",
+              "fieldValue": "={{ $('Basic LLM Chain').first().json.output.project_id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        912,
+        16
+      ],
+      "id": "6d3754f1-f647-4fcc-9e9f-d7fe7f642c25",
+      "name": "Create a row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "eYiHwWfQuKwHlv8X",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "=Saved: {{ $('Basic LLM Chain').first().json.output.title }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1360,
+        16
+      ],
+      "id": "a2c3abf3-8d41-4108-980c-6db22b05ee5a",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "user_settings",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "user_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Find user').first().json.user_id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "last_capture_at",
+              "fieldValue": "={{ $now }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1136,
+        16
+      ],
+      "id": "96dffdac-8a24-43ca-b32c-f5f2c4a4b7af",
+      "name": "Update a row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "eYiHwWfQuKwHlv8X",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Classify this saved resource. You cannot open the link; use the title, creator, note and link text.\nLink: {{ $('Webhook').first().json.body.url }}\nPage title: {{ $('Page info').first().json.title || $('Webhook').first().json.body.title || '' }}\nCreator: {{ $('Page info').first().json.author_name || '' }}\nUser's note: {{ $('Webhook').first().json.body.note || '' }}\nUser's projects: {{ JSON.stringify($('Get projects').all().map(i => ({id: i.json.id, name: i.json.name, goal: i.json.goal}))) }}\nReturn: title (short), resource_type (tutorial / technique / inspiration), topic (2–4 words), problem_helped (one sentence), summary (one sentence), project_id.\nFor project_id: ALWAYS choose one project from the list. Compare the title, creator, note and link with each project's name and goal, and pick the project whose subject is closest (e.g. anything about packaging, boxes or labels → the packaging project; jobs, CVs, interviews → the job search project; fitness or music for workouts → the health project). If nothing is clearly related, still pick the single closest project. Return JSON null only if the project list is empty. Never invent an id.",
+        "hasOutputParser": true,
+        "needsFallback": true,
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        288,
+        0
+      ],
+      "id": "258a8586-bcb1-4e54-b163-5ee5e18de86b",
+      "name": "Basic LLM Chain",
+      "executeOnce": true,
+      "retryOnFail": true,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "url": "=https://www.youtube.com/oembed?format=json&url={{ encodeURIComponent($('Webhook').first().json.body.url) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        64,
+        0
+      ],
+      "id": "1310194d-a7cf-4d26-b2ed-1df2fe6e0e1e",
+      "name": "Page info",
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "claude-sonnet-5",
+          "cachedResultName": "Claude Sonnet 5"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.6,
+      "position": [
+        352,
+        368
+      ],
+      "id": "251e0aaf-6bdd-4f3a-a9e7-dba8b57b1ec4",
+      "name": "Anthropic Chat Model",
+      "credentials": {
+        "anthropicApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "vidhikaindustries.app.n8n.cloud",
+            "content-length": "290",
+            "accept-encoding": "gzip, br",
+            "cdn-loop": "cloudflare; loops=1; subreqs=2",
+            "cf-connecting-ip": "2a06:98c0:3600::103",
+            "cf-ew-via": "14",
+            "cf-ipcountry": "IN",
+            "cf-ray": "a47e9f1f9f38b79c-BOM",
+            "cf-visitor": "{\"scheme\":\"https\"}",
+            "cf-worker": "n8n.cloud",
+            "content-type": "application/json",
+            "x-forwarded-for": "2a06:98c0:3600::103, 172.71.198.60",
+            "x-forwarded-host": "vidhikaindustries.app.n8n.cloud",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "traefik-prod-users-swc-1-68475655b6-zzsww",
+            "x-is-trusted": "yes",
+            "x-real-ip": "2a06:98c0:3600::103"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "key": "cc29c274c1a54ec6b3951d6a6ff3a50c",
+            "url": "https://www.youtube.com/watch?v=7ZONidixtRw",
+            "note": "",
+            "project_id": "ea1a3d20-4a84-4a7c-b082-6d28fe73aee7",
+            "title": "(72) Top 5 Innovative Packaging Ideas - Custom Packaging Done Right [2024] | @Bizongo Desworks - YouTube",
+            "source": "desktop"
+          },
+          "webhookUrl": "https://vidhikaindustries.app.n8n.cloud/webhook/share-capture",
+          "executionMode": "production"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Find user",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find user": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Get projects",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get projects": {
+      "main": [
+        [
+          {
+            "node": "Page info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a row": {
+      "main": [
+        [
+          {
+            "node": "Update a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update a row": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Create a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Page info": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 1
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "5f26f9c7-38f0-457c-9507-ea6e87fad09f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d2fae09e5c4a972ec8b0d04be78febffb77827ffb27eca2e21c6a208b9195e59"
+  },
+  "nodeGroups": [],
+  "id": "xOOvhsqzIrdfWGuD",
+  "tags": []
+}
